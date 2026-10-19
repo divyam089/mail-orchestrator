@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { DEFAULT_WINDOW, sendAllowed, zonedTimeToUtc } from "@/lib/window";
+import { addBusinessDays, DEFAULT_WINDOW, leadWindowAllows, sendAllowed, zonedTimeToUtc } from "@/lib/window";
 
 const ET = "America/New_York";
 
@@ -36,5 +36,23 @@ describe("send window", () => {
 
   it("allows a weekday morning after US daylight time ends", () => {
     expect(sendAllowed(et(2026, 11, 2, 10, 0)).ok).toBe(true);
+  });
+
+  it("adds business days and skips weekends and listed holidays", () => {
+    expect(addBusinessDays("2026-10-22", 3)).toBe("2026-10-27");
+    expect(addBusinessDays("2026-10-22", 1, ["2026-10-23"])).toBe("2026-10-26");
+    expect(addBusinessDays("2026-10-22", 0)).toBe("2026-10-22");
+  });
+
+  it("intersects the lead's local hours with the ET window", () => {
+    const morning = et(2026, 10, 22, 10, 0);
+    expect(leadWindowAllows(morning, "America/New_York").ok).toBe(true);
+    expect(leadWindowAllows(morning, null).ok).toBe(true);
+    expect(leadWindowAllows(morning, "America/Los_Angeles").reason).toMatch(/Los_Angeles/);
+    expect(leadWindowAllows(et(2026, 10, 22, 12, 0), "America/Los_Angeles").ok).toBe(true);
+    expect(leadWindowAllows(morning, "Asia/Kolkata").reason).toMatch(/Kolkata/);
+    expect(leadWindowAllows(et(2026, 10, 24, 12, 0), "America/Los_Angeles").reason).toMatch(/weekend/);
+    expect(leadWindowAllows(et(2026, 11, 2, 10, 0), "America/New_York").ok).toBe(true);
+    expect(leadWindowAllows(et(2026, 10, 22, 17, 0), "America/New_York").ok).toBe(false);
   });
 });

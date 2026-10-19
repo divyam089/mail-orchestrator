@@ -117,3 +117,65 @@ export function sendAllowed(
 export function etDateISO(at: Date): string {
   return isoDate(zonedParts(at, ET));
 }
+
+/** UTC instants of the ET clock window on one Eastern calendar date. End is exclusive. */
+export function etWindowBounds(etDate: string, window: SendWindow = DEFAULT_WINDOW): { start: Date; end: Date } {
+  const [year, month, day] = etDate.split("-").map(Number);
+  const [startHour, startMinute] = window.etStart.split(":").map(Number);
+  const [endHour, endMinute] = window.etEnd.split(":").map(Number);
+  return {
+    start: zonedTimeToUtc(year, month, day, startHour, startMinute, ET),
+    end: zonedTimeToUtc(year, month, day, endHour, endMinute, ET),
+  };
+}
+
+export function isUsBusinessDay(etDate: string, holidays: readonly string[] = []): boolean {
+  const [year, month, day] = etDate.split("-").map(Number);
+  const noon = new Date(Date.UTC(year, month - 1, day, 12, 0, 0));
+  const weekday = noon.getUTCDay();
+  if (weekday === 0 || weekday === 6) return false;
+  return !holidays.includes(etDate);
+}
+
+/** Move forward `days` US business days. Weekends and listed holidays do not count. */
+export function addBusinessDays(etDate: string, days: number, holidays: readonly string[] = []): string {
+  if (!Number.isInteger(days) || days < 0) throw new Error("days must be an integer >= 0");
+  const [year, month, day] = etDate.split("-").map(Number);
+  let cursor = new Date(Date.UTC(year, month - 1, day, 12, 0, 0));
+  let left = days;
+  while (left > 0) {
+    cursor = new Date(cursor.getTime() + 86_400_000);
+    const iso = cursor.toISOString().slice(0, 10);
+    if (!isUsBusinessDay(iso, holidays)) continue;
+    left -= 1;
+  }
+  return cursor.toISOString().slice(0, 10);
+}
+
+const LEAD_START = 9 * 60;
+const LEAD_END = 17 * 60;
+
+/**
+ * The lead's local 09:00–17:00 intersected with the US weekday ET/IST window.
+ * A missing timezone is treated as America/New_York. The end minute is exclusive.
+ */
+export function leadWindowAllows(
+  at: Date,
+  leadTimezone: string | null | undefined,
+  window: SendWindow = DEFAULT_WINDOW,
+  holidays: readonly string[] = [],
+): { ok: boolean; reason: string } {
+  const base = sendAllowed(at, window, holidays);
+  if (!base.ok) return base;
+  const zone = leadTimezone?.trim() || ET;
+  let local: Zoned;
+  try {
+    local = zonedParts(at, zone);
+  } catch {
+    return { ok: false, reason: `invalid lead timezone ${zone}` };
+  }
+  if (!inWindow(local.hour * 60 + local.minute, LEAD_START, LEAD_END)) {
+    return { ok: false, reason: `outside lead local 09:00-17:00 (${zone})` };
+  }
+  return { ok: true, reason: "ok" };
+}

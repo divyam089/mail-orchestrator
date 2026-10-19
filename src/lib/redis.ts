@@ -1,5 +1,14 @@
 import Redis from "ioredis";
 
+export function createRedis(): Redis {
+  const url = process.env.REDIS_URL;
+  if (!url) throw new Error("REDIS_URL is not set");
+  return new Redis(url, {
+    connectTimeout: 1500,
+    maxRetriesPerRequest: 1,
+  });
+}
+
 export async function redisPing(): Promise<boolean> {
   const url = process.env.REDIS_URL;
   if (!url) return false;

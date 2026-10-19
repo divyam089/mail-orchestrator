@@ -37,6 +37,9 @@ export function GateBanner({ status }: { status: SystemStatus }) {
             <Link className="text-muted underline decoration-line underline-offset-2" href="/import">
               Import
             </Link>
+            <Link className="text-muted underline decoration-line underline-offset-2" href="/review">
+              Review
+            </Link>
           </div>
         </div>
         <div className="grid grid-cols-2 gap-x-4 gap-y-2 sm:flex sm:gap-6">
@@ -58,9 +61,9 @@ export function StatusBoard({ status }: { status: SystemStatus }) {
   const groups = groupInboxes(status);
   return (
     <main className="mx-auto max-w-6xl px-4 py-8 sm:px-6 sm:py-10">
-      <p className="text-[11px] uppercase tracking-[0.18em] text-muted">Step 3 of 8 · Verify and dedupe</p>
+      <p className="text-[11px] uppercase tracking-[0.18em] text-muted">Step 4 of 8 · Sending engine</p>
       <h1 className="font-display mt-2 max-w-3xl text-4xl leading-tight sm:text-5xl">
-        Sending is off. Only a valid address can be enrolled.
+        Sending is off. Approval stays in the review queue.
       </h1>
       <p className="mt-4 max-w-2xl text-base leading-relaxed text-muted">
         <Link className="text-ink underline decoration-line underline-offset-2" href="/import">
@@ -126,8 +129,10 @@ export function StatusBoard({ status }: { status: SystemStatus }) {
           <p className="mt-3 text-sm leading-relaxed text-muted">
             Config and the database can lower these. They cannot raise them. Ramp is 9, then 18, then 27 per inbox
             (sending days 1–3, 4–7, then day 8 on). A step-up waits if the previous sending day had a stop. New
-            prospects stay at {status.newPerInboxPerDay ?? 9} per inbox per day. Sends run only on US weekdays,
-            09:00–17:00 Eastern, and inside 18:30–06:30 IST.
+            prospects stay at {status.newPerInboxPerDay ?? 9} per inbox per day. A send has to fall inside the
+            lead&apos;s local 09:00–17:00 and on a US weekday, 09:00–17:00 Eastern. Hard bounce above 2% of the last
+            200, complaint rates of 0.10% and 0.30%, and provider codes 4.7.28, 5.7.515, and 5.7.26 pause sending.
+            Looser stop thresholds need an audited override.
           </p>
           <p className="mt-3 font-mono text-xs text-muted">ramp {status.ramp}</p>
         </article>
@@ -183,10 +188,10 @@ export function StatusBoard({ status }: { status: SystemStatus }) {
         <article className="border border-line bg-card p-4">
           <h2 className="text-sm font-medium">How a send stays unique</h2>
           <ol className="mt-3 list-decimal space-y-2 pl-4 text-sm leading-relaxed text-muted">
-            <li>UI, API, and worker all write Postgres. Redis is the later queue, not the source of truth.</li>
+            <li>Redis holds the queue. Postgres holds the lock. A restart puts an in-flight job back on the queue.</li>
             <li>Contacts collide on normalize_email: lowercase, trim, Gmail dots and +tags.</li>
-            <li>The sender inserts a sent-log row before any network call. The unique key is contact, campaign, step.</li>
-            <li>A retry or a crash sees that row and does not send again. The mock adapter refuses real mail.</li>
+            <li>The worker inserts a sent-log row before any adapter call. The unique key is contact, campaign, step.</li>
+            <li>A killed worker sees that row and does not send the step again. The web process never calls Gmail.</li>
           </ol>
         </article>
       </section>

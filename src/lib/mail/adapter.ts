@@ -11,6 +11,7 @@ export class MailSendRefused extends Error {
 
 export type OutboundMessage = {
   from: string;
+  to?: string;
   raw: string;
   threadId?: string;
 };

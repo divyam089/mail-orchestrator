@@ -56,3 +56,13 @@ export function autoSendPermitted(input: {
 }): boolean {
   return anySendingPermitted(input) && input.approvalMode === "auto";
 }
+
+/**
+ * Null inherits the global toggle. A campaign set to review forces the queue.
+ * A campaign set to auto still waits when the global toggle is review.
+ */
+export function effectiveApproval(global: ApprovalMode, override: ApprovalMode | null): ApprovalMode {
+  if (override === "review") return "review";
+  if (global !== "auto") return "review";
+  return "auto";
+}

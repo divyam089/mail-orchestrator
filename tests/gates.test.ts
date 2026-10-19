@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   anySendingPermitted,
   autoSendPermitted,
+  effectiveApproval,
   isUnset,
   readSendMode,
   readSendingEnabled,
@@ -58,5 +59,13 @@ describe("sending gates", () => {
     expect(
       autoSendPermitted({ ...open, approvalMode: "auto", legalName: "TODO: legal name" }),
     ).toBe(false);
+  });
+
+  it("lets a campaign force review, and does not let campaign auto override a global review", () => {
+    expect(effectiveApproval("review", null)).toBe("review");
+    expect(effectiveApproval("review", "auto")).toBe("review");
+    expect(effectiveApproval("auto", "review")).toBe("review");
+    expect(effectiveApproval("auto", null)).toBe("auto");
+    expect(effectiveApproval("auto", "auto")).toBe("auto");
   });
 });

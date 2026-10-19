@@ -1,17 +1,18 @@
 # Figcel Outreach
 
-Cold-email ledger and, later, a multi-inbox client for 15 Google Workspace mailboxes. Step 3 verifies and dedupes leads. Nothing sends.
+Cold-email ledger for 15 Google Workspace mailboxes. Step 4 plans sequences and can send only through the gated worker. The kill switch ships off, so this process does not send.
 
 ```
 UI ──┐
      ├── Next.js route handlers ── Postgres (unique constraints, source of truth)
 API ─┘            │
-                  ├── Redis (queue and live events in later steps; health check only now)
+                  ├── Redis (send queue: ready list plus a processing list)
                   └── Mail adapter
-                        ├── mock (every test)
+                        ├── mock (every test, and the web process)
                         └── Gmail API via one service account + domain-wide delegation
-                              read: profile, messages.list, messages.get, history.list
-                              send() throws. Sync never calls modify, labels, trash, or delete.
+                              sync reads profile, messages.list, messages.get, history.list
+                              sync never calls modify, labels, trash, or delete
+                              messages.send exists only in the send worker, after every gate
 ```
 
 Postgres is what makes “no duplicates” and “no double send” true. Redis is not. A send is reserved by inserting a row. The unique key `(contact, campaign, step)` rejects a second insert, so a retry or a crash cannot send that step again.
@@ -64,6 +65,26 @@ Approval defaults to **review** (off): later, that means drafts in the review qu
 
 Open and click tracking columns exist on campaigns and default to **off**. Inbox placement can be stored only as a seed test (`measurement = 'seed_test_only'`).
 
+## Sending
+
+Approval defaults to **off** (`review`). The planner then writes a draft on `/review` and does not enqueue. Turning it on (`auto`) schedules sends. A campaign `approval_override` of `review` forces the queue. A campaign value of `auto` still waits while the global toggle is `review`. Every change is an `approval.change` row in `audit_log` with its source.
+
+The send worker is separate from the web server:
+
+```bash
+npm run send:worker
+```
+
+With `SENDING_ENABLED` left false, that command exits before it builds a Gmail client. The web process approves drafts through the mock adapter, so clicking Approve does not send while the kill switch is off.
+
+Redis is the queue (`outreach:send-queue` and a processing list). The worker moves a job to the processing list before it sends, and a restart moves that list back. The send itself is locked by inserting `sends` first. The unique key `(contact, campaign, step)` rejects a second insert, including after a crash.
+
+Gates run again at send time: kill switch, send mode, legal name, postal address, unsubscribe URL, verification, suppression, reply, bounce, unsubscribe, out-of-office, inbox status, pause, caps, and the lead's local 09:00–17:00 intersected with US weekdays 09:00–17:00 Eastern. Dry-run sends nothing. Seed-only sends only to `seed_addresses`.
+
+Stop rules match the reference sender. Hard bounce above 2% of the last 200 pauses (a fleet pause needs the full 200). Complaint rates are percent points: 0.10% pauses the domain, 0.30% pauses the fleet. Provider codes `4.7.28`, `5.7.515`, and `5.7.26` pause that inbox and do not retry. Seed placement under 80% and a blacklist hit pause too. An unsubscribe sync older than 24 hours, or a reply poll older than 24 hours, stops prospect sends. A successful inbox sync records the poll time. Thresholds can be tightened in settings. Making one looser requires `updateStopThresholds` with a reason, which writes `threshold_overrides` and an audit row. The database rejects a looser value that has no override id.
+
+Sequence steps after the first are replies: same Gmail thread, `In-Reply-To`, `References`, and a `Re:` subject. Copy can use `{{field}}`, `{{field|fallback}}`, and `{Hi|Hello}` spintax. Plain text only, with a visible unsubscribe line, the postal address, and RFC 8058 headers. Open and click tracking stay off unless that campaign turns them on.
+
 ## Import and verification
 
 `/import` accepts a paste or a CSV. The same function, `importLeads`, is what an API route calls. Field mapping assigns columns to email, name, company, title, and timezone. Other columns can be stored as custom variables. List tags are attached to the contact. The first non-empty name and custom value win.
@@ -103,7 +124,7 @@ npm run inbox:schedule
 
 `inbox:schedule` repeats that sync, one inbox after another, every 300 seconds by default (`--interval` is seconds, minimum 60). Ctrl-C stops it. It is not started by `npm run dev`.
 
-The token requests `gmail.send`, `gmail.readonly`, and `gmail.modify`, matching the domain-wide grant on the five tenants. `messages.send` is not called. `GmailReadOnlyMailbox.send()` throws. The HTTP client rejects send, modify, label, trash, delete, draft, attachment, settings, and watch paths before any network call.
+The token requests `gmail.send`, `gmail.readonly`, and `gmail.modify`, matching the domain-wide grant on the five tenants. Sync does not call `messages.send`. `GmailReadOnlyMailbox.send()` throws. The sync HTTP client rejects send, modify, label, trash, delete, draft, attachment, settings, and watch paths before any network call. `messages.send` lives in `src/lib/mail/gmail-send.ts` and is reached only from `npm run send:worker` after the gates above. An inbound reply, hard bounce, unsubscribe, or out-of-office message stops the contact's open sequences.
 
 ### Quota
 

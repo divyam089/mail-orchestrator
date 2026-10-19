@@ -4,6 +4,8 @@ import { Pool, type PoolClient } from "pg";
 import { parseGmailMessage, type ParsedGmailMessage } from "@/lib/mail/parse";
 import { GMAIL_PAGE_SIZE, assertSyncLimit } from "@/lib/mail/quota";
 import type { GmailGetFormat, GmailReadClient } from "@/lib/mail/types";
+import { stopFromInbound } from "@/lib/send/inbound";
+import { touchKv } from "@/lib/send/settings";
 
 export type ConnectResult =
   | { ok: true; email: string; historyId: string; messagesTotal: number | null }
@@ -208,6 +210,15 @@ async function upsertMessage(db: Db, inboxId: string, inboxEmail: string, parsed
        ON CONFLICT (inbox_id, gmail_message_id) DO NOTHING`,
       [inboxId, parsed.gmailId],
     );
+    if (full && parsed.direction === "in") {
+      await stopFromInbound(tx, {
+        inboxId,
+        gmailMessageId: parsed.gmailId,
+        fromEmail: parsed.fromEmail,
+        subject: parsed.subject,
+        bodyText: parsed.bodyText,
+      });
+    }
   });
 }
 
@@ -373,6 +384,7 @@ export async function syncInbox(
       historyId = full.historyId;
     }
     await markActive(db, inbox.id, historyId, true);
+    await touchKv(db, "poll_ok_at");
     return { ok: true, email: known, mode, stored, removed, historyId };
   } catch (error) {
     await markDisconnected(db, inbox.id, error);

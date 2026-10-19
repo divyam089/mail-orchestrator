@@ -13,7 +13,8 @@
     "db:up": "docker compose up -d",
     "inbox:check": "tsx scripts/inbox-check.ts",
     "inbox:sync": "tsx scripts/inbox-sync.ts",
-    "inbox:schedule": "tsx scripts/inbox-schedule.ts"
+    "inbox:schedule": "tsx scripts/inbox-schedule.ts",
+    "send:worker": "tsx scripts/send-worker.ts"
   },
   "dependencies": {
     "google-auth-library": "^11.3.1",
