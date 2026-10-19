@@ -1,0 +1,35 @@
+@import "tailwindcss";
+
+:root {
+  --paper: #efeae0;
+  --ink: #1c1915;
+  --muted: #5e584e;
+  --line: #ddd4c4;
+  --card: #fbf8f2;
+  --rust: #8c3a22;
+  --moss: #24543d;
+  --amber: #8a5a12;
+}
+
+@theme inline {
+  --color-paper: var(--paper);
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-line: var(--line);
+  --color-card: var(--card);
+  --color-rust: var(--rust);
+  --color-moss: var(--moss);
+  --color-amber: var(--amber);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+body {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-geist-sans), "Segoe UI", sans-serif;
+}
+
+.font-display {
+  font-family: Palatino, "Palatino Linotype", "Iowan Old Style", Georgia, serif;
+}
