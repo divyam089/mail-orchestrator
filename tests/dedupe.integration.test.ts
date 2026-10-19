@@ -115,7 +115,7 @@ it("rejects caps and ramp values above the hard limit, and real-recipient placem
   });
 });
 
-it("imports the same person in different forms as one contact and one enrollment", async () => {
+it("imports the same person in different forms as one contact and keeps every alias", async () => {
   await withClient(async (client) => {
     const campaign = await client.query<{ id: string }>(
       "INSERT INTO campaigns (name) VALUES ('October sequence') RETURNING id, track_opens, track_clicks, approval_override",
@@ -140,21 +140,18 @@ it("imports the same person in different forms as one contact and one enrollment
       email: "John.Doe+sales@gmail.com",
       firstName: "John",
       source: "csv",
-      campaignId,
       importId,
       lineNumber: 1,
     });
     const second = await importContact(client, {
       email: "johndoe@gmail.com",
       source: "paste",
-      campaignId,
       importId,
       lineNumber: 2,
     });
     const third = await importContact(client, {
       email: "  JOHNDOE@googlemail.com ",
       source: "api",
-      campaignId,
       importId,
       lineNumber: 3,
     });
@@ -190,8 +187,8 @@ it("imports the same person in different forms as one contact and one enrollment
     );
     expect(contacts.rows[0].n).toBe(1);
     expect(aliases.rows[0].n).toBe(3);
-    expect(enrollments.rows[0].n).toBe(1);
-    expect(rows.rows.map((row) => row.outcome)).toEqual(["created", "duplicate", "duplicate", "invalid"]);
+    expect(enrollments.rows[0].n).toBe(0);
+    expect(rows.rows.map((row) => row.outcome)).toEqual(["created", "already_in_system", "already_in_system", "invalid"]);
 
     const dotted = await importContact(client, {
       email: "ada.lovelace@company.com",
@@ -222,7 +219,6 @@ it("rejects a second prospect send for the same contact, campaign, and step", as
     const imported = await importContact(client, {
       email: "Jane Roe <jane.roe+list@gmail.com>",
       source: "ui",
-      campaignId: campaignA.rows[0].id,
     });
     if (!imported.ok) throw new Error("import failed");
 

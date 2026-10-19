@@ -1,3 +1,4 @@
+import Link from "next/link";
 import type { SystemStatus } from "@/lib/status";
 
 function Chip({ label, value, tone }: { label: string; value: string; tone: "bad" | "ok" | "warn" }) {
@@ -27,7 +28,17 @@ export function GateBanner({ status }: { status: SystemStatus }) {
   return (
     <div className="border-b border-line bg-card" role="status">
       <div className="mx-auto flex max-w-6xl flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-6">
-        <div className="font-display text-lg leading-none">Figcel Outreach</div>
+        <div>
+          <div className="font-display text-lg leading-none">Figcel Outreach</div>
+          <div className="mt-1 flex gap-3 text-xs">
+            <Link className="text-muted underline decoration-line underline-offset-2" href="/">
+              Status
+            </Link>
+            <Link className="text-muted underline decoration-line underline-offset-2" href="/import">
+              Import
+            </Link>
+          </div>
+        </div>
         <div className="grid grid-cols-2 gap-x-4 gap-y-2 sm:flex sm:gap-6">
           <Chip label="Approval" value={approval} tone={status.approvalMode === "auto" ? "warn" : "bad"} />
           <Chip
@@ -47,11 +58,23 @@ export function StatusBoard({ status }: { status: SystemStatus }) {
   const groups = groupInboxes(status);
   return (
     <main className="mx-auto max-w-6xl px-4 py-8 sm:px-6 sm:py-10">
-      <p className="text-[11px] uppercase tracking-[0.18em] text-muted">Step 2 of 8 · Read-only sync</p>
+      <p className="text-[11px] uppercase tracking-[0.18em] text-muted">Step 3 of 8 · Verify and dedupe</p>
       <h1 className="font-display mt-2 max-w-3xl text-4xl leading-tight sm:text-5xl">
-        Sending is off. Sync is read-only.
+        Sending is off. Only a valid address can be enrolled.
       </h1>
       <p className="mt-4 max-w-2xl text-base leading-relaxed text-muted">
+        <Link className="text-ink underline decoration-line underline-offset-2" href="/import">
+          Import
+        </Link>{" "}
+        takes a CSV or a paste, maps fields, keeps one contact per normalized address, and writes a dedupe report.
+        Syntax, MX, role, disposable, and suppression run here. The verification provider is still{" "}
+        {status.verificationProvider ?? "TODO: verification provider"}.{" "}
+        {status.treatMxPassAsValid
+          ? "The owner policy is on, so an MX pass is stored as valid while that provider is still TODO."
+          : "An MX pass stays unknown. The owner policy that would treat it as valid is off."}{" "}
+        Risky and unknown addresses wait on the hold list.
+      </p>
+      <p className="mt-3 max-w-2xl text-base leading-relaxed text-muted">
         This server does not call Gmail. A connect check and a sync run on a machine that has the service-account
         JSON, with <span className="font-mono text-ink">npm run inbox:check</span> and{" "}
         <span className="font-mono text-ink">npm run inbox:sync</span>. The repeating job is{" "}
@@ -127,6 +150,10 @@ export function StatusBoard({ status }: { status: SystemStatus }) {
             <div className="flex justify-between gap-4">
               <dt className="text-muted">Verification</dt>
               <dd className="text-right">{status.verificationProvider}</dd>
+            </div>
+            <div className="flex justify-between gap-4">
+              <dt className="text-muted">MX pass as valid</dt>
+              <dd>{status.treatMxPassAsValid ? "on" : "off"}</dd>
             </div>
             <div className="flex justify-between gap-4">
               <dt className="text-muted">Unsubscribe URL</dt>

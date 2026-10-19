@@ -1,6 +1,6 @@
 # Figcel Outreach
 
-Cold-email ledger and, later, a multi-inbox client for 15 Google Workspace mailboxes. Step 2 adds a read-only Gmail sync. Nothing sends.
+Cold-email ledger and, later, a multi-inbox client for 15 Google Workspace mailboxes. Step 3 verifies and dedupes leads. Nothing sends.
 
 ```
 UI ──┐
@@ -63,6 +63,26 @@ Approval defaults to **review** (off): later, that means drafts in the review qu
 `normalize_email` lowercases and trims. Dots and `+tags` are removed only for `gmail.com` and `googlemail.com` (`googlemail.com` becomes `gmail.com`). Other domains, including the five Workspace sending domains, keep dots and `+tags`. The same function lives in Postgres and in `src/lib/email/normalize.ts`. A contact row must store the normalized form; the check constraint rejects anything else. `contacts.normalized_email` is unique.
 
 Open and click tracking columns exist on campaigns and default to **off**. Inbox placement can be stored only as a seed test (`measurement = 'seed_test_only'`).
+
+## Import and verification
+
+`/import` accepts a paste or a CSV. The same function, `importLeads`, is what an API route calls. Field mapping assigns columns to email, name, company, title, and timezone. Other columns can be stored as custom variables. List tags are attached to the contact. The first non-empty name and custom value win.
+
+The dedupe report counts new, duplicate-in-file, already-in-system, invalid, and suppressed. One contact exists per `normalize_email`. Each distinct spelling is kept on `contact_aliases`.
+
+Checks, in order: syntax, suppression (the address, or its domain and parent domains), then MX, role, and disposable.
+
+- A null MX (exchange `.`) means the domain does not accept mail ([RFC 7505](https://www.rfc-editor.org/rfc/rfc7505)).
+- If there is no MX, an A or AAAA record is an implicit mail host ([RFC 5321 §5.1](https://www.rfc-editor.org/rfc/rfc5321#section-5.1)).
+- A timeout or a server failure stays `unknown`. It does not fall through to an address lookup, and it does not downgrade a status we already stored.
+- Role mailboxes are the [RFC 2142](https://www.rfc-editor.org/rfc/rfc2142) names plus operational boxes such as `noreply` and `billing`. A `+tag` does not make a role mailbox personal.
+- Disposable domains are the CC0 blocklist from [disposable-email-domains/disposable-email-domains](https://github.com/disposable-email-domains/disposable-email-domains) at commit `b63df8b431f37ef0b22524f9cae2e86c7114a9de`, retrieved 2026-10-19. See `src/lib/verify/vendor/SOURCE.txt`.
+
+The verification provider is still `TODO: verification provider`. The adapter is the swap point. With no provider, an MX pass is `unknown`, not `valid`. `app_settings.treat_mx_pass_as_valid` defaults to false. Set it only as an explicit owner decision. Role and disposable results stay `risky` even if a provider says valid. A failed MX stays `invalid`.
+
+Only `valid` is enrolled. `risky` and `unknown` go to `verification_holds`. Approve marks the contact valid, enrolls them when the hold names a campaign, and writes `hold.approve` to `audit_log`. Reject writes `hold.reject` and does not enroll.
+
+Tests pass a fake DNS resolver. They do not query the network.
 
 ## Checking the real inboxes
 

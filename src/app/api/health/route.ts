@@ -19,6 +19,8 @@ export async function GET() {
     anySendingPermitted: status.anySendingPermitted,
     autoSendPermitted: status.autoSendPermitted,
     gmailKeyConfigured: status.gmailKeyConfigured,
+    verificationProvider: status.verificationProvider,
+    treatMxPassAsValid: status.treatMxPassAsValid,
     error: status.error,
   });
 }

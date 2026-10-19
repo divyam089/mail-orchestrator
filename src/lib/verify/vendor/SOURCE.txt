@@ -1,0 +1,6 @@
+Source: https://github.com/disposable-email-domains/disposable-email-domains
+File: disposable_email_blocklist.conf
+Commit: b63df8b431f37ef0b22524f9cae2e86c7114a9de
+Retrieved: 2026-10-19
+License: CC0 1.0 Universal — https://creativecommons.org/publicdomain/zero/1.0/
+The upstream README marks this blocklist CC0 (public domain).

@@ -32,6 +32,7 @@ export type SystemStatus = {
   legalName: string | null;
   postalAddress: string | null;
   verificationProvider: string | null;
+  treatMxPassAsValid: boolean;
   unsubscribeHttpsBase: string | null;
   hosting: string | null;
   maxPerInbox: number | null;
@@ -53,6 +54,7 @@ type SettingsRow = {
   legal_name: string;
   postal_address: string;
   verification_provider: string;
+  treat_mx_pass_as_valid: boolean;
   unsubscribe_https_base: string;
   hosting: string;
   max_per_inbox: number;
@@ -87,6 +89,7 @@ function base(redis: "up" | "down"): SystemStatus {
     legalName: null,
     postalAddress: null,
     verificationProvider: null,
+    treatMxPassAsValid: false,
     unsubscribeHttpsBase: null,
     hosting: null,
     maxPerInbox: null,
@@ -117,8 +120,8 @@ export const loadStatus = cache(async (): Promise<SystemStatus> => {
       pool.query<{ version: string }>("SELECT version FROM schema_migrations ORDER BY version DESC LIMIT 1"),
       pool.query<SettingsRow>(
         `SELECT approval_mode, legal_name, postal_address, verification_provider,
-                unsubscribe_https_base, hosting, max_per_inbox, max_total,
-                new_per_inbox_per_day, ramp
+                treat_mx_pass_as_valid, unsubscribe_https_base, hosting, max_per_inbox,
+                max_total, new_per_inbox_per_day, ramp
          FROM app_settings WHERE id = 1`,
       ),
       pool.query<InboxSql>(
@@ -160,6 +163,7 @@ export const loadStatus = cache(async (): Promise<SystemStatus> => {
       legalName: settings.legal_name,
       postalAddress: settings.postal_address,
       verificationProvider: settings.verification_provider,
+      treatMxPassAsValid: settings.treat_mx_pass_as_valid,
       unsubscribeHttpsBase: settings.unsubscribe_https_base,
       hosting: settings.hosting,
       maxPerInbox: settings.max_per_inbox,
