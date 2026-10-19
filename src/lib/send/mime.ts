@@ -63,6 +63,108 @@ export function toRaw(mime: string): string {
   return Buffer.from(mime, "utf8").toString("base64url");
 }
 
+export type OutboundAttachment = { filename: string; mimeType: string; content: Buffer };
+
+export type RichMimeInput = {
+  fromEmail: string;
+  fromName: string;
+  to: string[];
+  cc?: string[];
+  subject: string;
+  text: string;
+  html?: string | null;
+  messageId?: string;
+  date?: Date;
+  inReplyTo?: string | null;
+  references?: string | null;
+  listUnsubscribeHttps?: string | null;
+  listUnsubscribeMailto?: string | null;
+  attachments?: OutboundAttachment[];
+};
+
+function wrapBase64(value: Buffer): string {
+  return value.toString("base64").replace(/(.{76})/g, "$1\r\n");
+}
+
+function safeFilename(name: string): string {
+  return name.replace(/[\r\n"]/g, "") || "attachment";
+}
+
+/** Multipart alternative, plus attachments. Reply headers are included when present. */
+export function buildRichMime(input: RichMimeInput): BuiltMime {
+  const domain = input.fromEmail.split("@")[1] || "localhost";
+  const messageId = input.messageId ?? newMessageId(domain);
+  const mixed = `mix_${randomBytes(8).toString("hex")}`;
+  const alt = `alt_${randomBytes(8).toString("hex")}`;
+  const headers = [
+    `From: ${formatAddress(input.fromName, input.fromEmail)}`,
+    `To: ${input.to.join(", ")}`,
+    input.cc && input.cc.length > 0 ? `Cc: ${input.cc.join(", ")}` : null,
+    `Subject: ${input.subject}`,
+    `Date: ${formatDate(input.date ?? new Date())}`,
+    `Message-ID: ${messageId}`,
+    "MIME-Version: 1.0",
+    input.inReplyTo ? `In-Reply-To: ${input.inReplyTo}` : null,
+    input.inReplyTo ? `References: ${input.references || input.inReplyTo}` : null,
+    input.listUnsubscribeHttps
+      ? `List-Unsubscribe: <${input.listUnsubscribeHttps}>, <${input.listUnsubscribeMailto}>`
+      : null,
+    input.listUnsubscribeHttps ? "List-Unsubscribe-Post: List-Unsubscribe=One-Click" : null,
+  ].filter((line): line is string => Boolean(line));
+
+  const textPart = [
+    `Content-Type: text/plain; charset="utf-8"`,
+    "Content-Transfer-Encoding: 8bit",
+    "",
+    input.text.replace(/\r\n/g, "\n").replace(/\n/g, "\r\n"),
+  ].join("\r\n");
+  const htmlPart = input.html
+    ? [
+        `Content-Type: text/html; charset="utf-8"`,
+        "Content-Transfer-Encoding: 8bit",
+        "",
+        input.html.replace(/\r\n/g, "\n").replace(/\n/g, "\r\n"),
+      ].join("\r\n")
+    : null;
+  const alternative = htmlPart
+    ? [
+        `Content-Type: multipart/alternative; boundary="${alt}"`,
+        "",
+        `--${alt}`,
+        textPart,
+        `--${alt}`,
+        htmlPart,
+        `--${alt}--`,
+      ].join("\r\n")
+    : textPart;
+  const files = input.attachments ?? [];
+  let body: string;
+  if (files.length === 0 && !htmlPart) {
+    headers.push('Content-Type: text/plain; charset="utf-8"', "Content-Transfer-Encoding: 8bit");
+    body = input.text.replace(/\r\n/g, "\n").replace(/\n/g, "\r\n");
+  } else if (files.length === 0) {
+    headers.push(`Content-Type: multipart/alternative; boundary="${alt}"`);
+    body = [`--${alt}`, textPart, `--${alt}`, htmlPart, `--${alt}--`, ""].join("\r\n");
+  } else {
+    headers.push(`Content-Type: multipart/mixed; boundary="${mixed}"`);
+    const parts = [`--${mixed}`, alternative];
+    for (const file of files) {
+      parts.push(
+        `--${mixed}`,
+        `Content-Type: ${file.mimeType || "application/octet-stream"}; name="${safeFilename(file.filename)}"`,
+        "Content-Transfer-Encoding: base64",
+        `Content-Disposition: attachment; filename="${safeFilename(file.filename)}"`,
+        "",
+        wrapBase64(file.content),
+      );
+    }
+    parts.push(`--${mixed}--`, "");
+    body = parts.join("\r\n");
+  }
+  const mime = `${headers.join("\r\n")}\r\n\r\n${body}`;
+  return { mime, messageId, raw: toRaw(mime) };
+}
+
 export function unsubscribeUrls(base: string, token: string, inboxEmail: string): { https: string; mailto: string } {
   const root = base.replace(/\/$/, "");
   return {

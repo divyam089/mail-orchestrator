@@ -40,13 +40,33 @@ export async function decideDraft(
     rng?: Rng;
   },
 ): Promise<{ ok: true; send?: ExecuteResult } | { ok: false; reason: string }> {
-  const draft = await db.query<{ id: string; enrollment_id: string; step_number: number; state: string }>(
-    "SELECT id, enrollment_id, step_number, state FROM review_drafts WHERE id = $1",
-    [input.id],
-  );
+  const draft = await db.query<{
+    id: string;
+    enrollment_id: string | null;
+    step_number: number;
+    state: string;
+    kind: string;
+  }>("SELECT id, enrollment_id, step_number, state, kind FROM review_drafts WHERE id = $1", [input.id]);
   const row = draft.rows[0];
   if (!row) return { ok: false, reason: "draft not found" };
   if (row.state === "sent" || row.state === "rejected") return { ok: false, reason: `draft is ${row.state}` };
+
+  if (row.kind === "manual" || !row.enrollment_id) {
+    const next = input.action === "reject" ? "rejected" : "approved";
+    await db.query(
+      `UPDATE review_drafts SET state = $2, decided_at = now(), decided_by = $3 WHERE id = $1`,
+      [row.id, next, input.actor],
+    );
+    await audit(db, {
+      source: input.source,
+      actor: input.actor,
+      action: input.action === "reject" ? "review.reject" : "review.approve",
+      entityType: "review_drafts",
+      entityId: row.id,
+      detail: { kind: "manual" },
+    });
+    return { ok: true };
+  }
 
   if (input.action === "reject") {
     await db.query(

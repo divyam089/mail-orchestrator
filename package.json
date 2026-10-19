@@ -14,7 +14,9 @@
     "inbox:check": "tsx scripts/inbox-check.ts",
     "inbox:sync": "tsx scripts/inbox-sync.ts",
     "inbox:schedule": "tsx scripts/inbox-schedule.ts",
-    "send:worker": "tsx scripts/send-worker.ts"
+    "send:worker": "tsx scripts/send-worker.ts",
+    "mail:unsnooze": "tsx scripts/mail-unsnooze.ts",
+    "mail:verify-sent": "tsx scripts/verify-sent-thread.ts"
   },
   "dependencies": {
     "google-auth-library": "^11.3.1",

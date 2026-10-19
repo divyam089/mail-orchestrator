@@ -27,7 +27,7 @@ export function GateBanner({ status }: { status: SystemStatus }) {
     status.approvalMode === "auto" ? "Auto-send ON" : status.approvalMode === "review" ? "Review queue · OFF" : "Unknown";
   return (
     <div className="border-b border-line bg-card" role="status">
-      <div className="mx-auto flex max-w-6xl flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+      <div className="mx-auto flex max-w-[96rem] flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-6">
         <div>
           <div className="font-display text-lg leading-none">Figcel Outreach</div>
           <div className="mt-1 flex gap-3 text-xs">
@@ -39,6 +39,9 @@ export function GateBanner({ status }: { status: SystemStatus }) {
             </Link>
             <Link className="text-muted underline decoration-line underline-offset-2" href="/review">
               Review
+            </Link>
+            <Link className="text-muted underline decoration-line underline-offset-2" href="/mail">
+              Mail
             </Link>
           </div>
         </div>
@@ -61,7 +64,7 @@ export function StatusBoard({ status }: { status: SystemStatus }) {
   const groups = groupInboxes(status);
   return (
     <main className="mx-auto max-w-6xl px-4 py-8 sm:px-6 sm:py-10">
-      <p className="text-[11px] uppercase tracking-[0.18em] text-muted">Step 4 of 8 · Sending engine</p>
+      <p className="text-[11px] uppercase tracking-[0.18em] text-muted">Step 5 of 8 · Mailbox</p>
       <h1 className="font-display mt-2 max-w-3xl text-4xl leading-tight sm:text-5xl">
         Sending is off. Approval stays in the review queue.
       </h1>
@@ -75,7 +78,11 @@ export function StatusBoard({ status }: { status: SystemStatus }) {
         {status.treatMxPassAsValid
           ? "The owner policy is on, so an MX pass is stored as valid while that provider is still TODO."
           : "An MX pass stays unknown. The owner policy that would treat it as valid is off."}{" "}
-        Risky and unknown addresses wait on the hold list.
+        Risky and unknown addresses wait on the hold list.{" "}
+        <Link className="text-ink underline decoration-line underline-offset-2" href="/mail">
+          Mail
+        </Link>{" "}
+        is the unified inbox: threads, search, and a reply that stays in Review while approval is off.
       </p>
       <p className="mt-3 max-w-2xl text-base leading-relaxed text-muted">
         This server does not call Gmail. A connect check and a sync run on a machine that has the service-account

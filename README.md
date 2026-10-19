@@ -1,6 +1,6 @@
 # Figcel Outreach
 
-Cold-email ledger for 15 Google Workspace mailboxes. Step 4 plans sequences and can send only through the gated worker. The kill switch ships off, so this process does not send.
+Cold-email ledger for 15 Google Workspace mailboxes. Step 5 is the mailbox: one inbox over the synced mail, with replies held in Review while approval is off. The kill switch ships off, so this process does not send.
 
 ```
 UI ──┐
@@ -84,6 +84,28 @@ Gates run again at send time: kill switch, send mode, legal name, postal address
 Stop rules match the reference sender. Hard bounce above 2% of the last 200 pauses (a fleet pause needs the full 200). Complaint rates are percent points: 0.10% pauses the domain, 0.30% pauses the fleet. Provider codes `4.7.28`, `5.7.515`, and `5.7.26` pause that inbox and do not retry. Seed placement under 80% and a blacklist hit pause too. An unsubscribe sync older than 24 hours, or a reply poll older than 24 hours, stops prospect sends. A successful inbox sync records the poll time. Thresholds can be tightened in settings. Making one looser requires `updateStopThresholds` with a reason, which writes `threshold_overrides` and an audit row. The database rejects a looser value that has no override id.
 
 Sequence steps after the first are replies: same Gmail thread, `In-Reply-To`, `References`, and a `Re:` subject. Copy can use `{{field}}`, `{{field|fallback}}`, and `{Hi|Hello}` spintax. Plain text only, with a visible unsubscribe line, the postal address, and RFC 8058 headers. Open and click tracking stay off unless that campaign turns them on.
+
+## Mailbox
+
+`/mail` is one inbox over every synced mailbox. Filter by inbox, campaign, or label. Each message shows which inbox sent or received it. Search is Postgres full text over sender, recipient, subject, and body, with a literal match so an address still hits.
+
+Star, read, archive, snooze, and labels write the local row immediately and queue a `gmail_mirror_jobs` row. `GMAIL_MIRROR_ENABLED` defaults to false, so those jobs stay held and `messages.modify` is not called. Sync stays on the read-only client. A later sync does not overwrite a flag that still has an unapplied mirror job. `npm run mail:unsnooze` returns due snoozes to the inbox. Opening the list does the same.
+
+Reply, reply all, and forward leave from the original inbox. Reply and reply all set `In-Reply-To`, `References`, and the Gmail thread id. The HTML is allowlisted. A plain-text alternative is stored with it. Manual mail uses the same locks as a campaign send: kill switch, send mode, and approval. Approval off stores a Review draft and does not call the adapter. A suppressed recipient is skipped. Prospect mail (a contact with a pending or active enrollment) gets the legal footer and the unsubscribe headers. Manual sends count toward the 27/405 cap. A desk reply does not wait for the Eastern sending window. The web process passes the mock adapter and the real kill switch, so the page cannot send.
+
+Classification is rules first: unsubscribe, out of office, not interested, not now, interested. `TodoReplyModel` is the swap point and returns nothing. Relabeling writes `classification.change` to the audit log.
+
+Keyboard: `j` `k` move, `r` reply, `a` reply all, `f` forward, `e` archive, `s` star, `/` search, `?` the shortcut list.
+
+The check that a reply shows up in Gmail Sent, on the same thread, cannot run here. On the key machine, with approval set to auto for that one message:
+
+```bash
+SEND_MODE=seed-only SENDING_ENABLED=true \
+  npm run mail:verify-sent -- --confirm-seed-send \
+  --inbox divyam@usefigcel.com --seed you@yourseed.com --thread <threads.id>
+```
+
+The seed address must already be in `seed_addresses`. Without those flags the script exits before it imports the Gmail sender. Put approval back to review and `SENDING_ENABLED` back to false afterwards.
 
 ## Import and verification
 

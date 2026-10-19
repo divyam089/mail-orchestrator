@@ -145,10 +145,30 @@ async function upsertMessage(db: Db, inboxId: string, inboxEmail: string, parsed
            body_html = EXCLUDED.body_html,
            snippet = EXCLUDED.snippet,
            internal_date = EXCLUDED.internal_date,
-           is_read = EXCLUDED.is_read,
-           is_starred = EXCLUDED.is_starred,
-           is_archived = EXCLUDED.is_archived,
-           labels = EXCLUDED.labels,
+           is_read = CASE WHEN EXISTS (
+             SELECT 1 FROM gmail_mirror_jobs j
+             WHERE j.inbox_id = messages.inbox_id
+               AND j.gmail_message_id = messages.gmail_message_id
+               AND j.applied_at IS NULL
+           ) THEN messages.is_read ELSE EXCLUDED.is_read END,
+           is_starred = CASE WHEN EXISTS (
+             SELECT 1 FROM gmail_mirror_jobs j
+             WHERE j.inbox_id = messages.inbox_id
+               AND j.gmail_message_id = messages.gmail_message_id
+               AND j.applied_at IS NULL
+           ) THEN messages.is_starred ELSE EXCLUDED.is_starred END,
+           is_archived = CASE WHEN EXISTS (
+             SELECT 1 FROM gmail_mirror_jobs j
+             WHERE j.inbox_id = messages.inbox_id
+               AND j.gmail_message_id = messages.gmail_message_id
+               AND j.applied_at IS NULL
+           ) THEN messages.is_archived ELSE EXCLUDED.is_archived END,
+           labels = CASE WHEN EXISTS (
+             SELECT 1 FROM gmail_mirror_jobs j
+             WHERE j.inbox_id = messages.inbox_id
+               AND j.gmail_message_id = messages.gmail_message_id
+               AND j.applied_at IS NULL
+           ) THEN messages.labels ELSE EXCLUDED.labels END,
            has_attachments = EXCLUDED.has_attachments,
            removed_at = NULL
          RETURNING id`,
@@ -187,10 +207,30 @@ async function upsertMessage(db: Db, inboxId: string, inboxEmail: string, parsed
       await tx.query(
         `UPDATE messages
          SET thread_row_id = $3,
-             is_read = $4,
-             is_starred = $5,
-             is_archived = $6,
-             labels = $7::jsonb,
+             is_read = CASE WHEN EXISTS (
+               SELECT 1 FROM gmail_mirror_jobs j
+               WHERE j.inbox_id = messages.inbox_id
+                 AND j.gmail_message_id = messages.gmail_message_id
+                 AND j.applied_at IS NULL
+             ) THEN messages.is_read ELSE $4 END,
+             is_starred = CASE WHEN EXISTS (
+               SELECT 1 FROM gmail_mirror_jobs j
+               WHERE j.inbox_id = messages.inbox_id
+                 AND j.gmail_message_id = messages.gmail_message_id
+                 AND j.applied_at IS NULL
+             ) THEN messages.is_starred ELSE $5 END,
+             is_archived = CASE WHEN EXISTS (
+               SELECT 1 FROM gmail_mirror_jobs j
+               WHERE j.inbox_id = messages.inbox_id
+                 AND j.gmail_message_id = messages.gmail_message_id
+                 AND j.applied_at IS NULL
+             ) THEN messages.is_archived ELSE $6 END,
+             labels = CASE WHEN EXISTS (
+               SELECT 1 FROM gmail_mirror_jobs j
+               WHERE j.inbox_id = messages.inbox_id
+                 AND j.gmail_message_id = messages.gmail_message_id
+                 AND j.applied_at IS NULL
+             ) THEN messages.labels ELSE $7::jsonb END,
              removed_at = NULL
          WHERE inbox_id = $1 AND gmail_message_id = $2`,
         [

@@ -38,11 +38,13 @@ export async function loadReviewDesk(db: Db = getPool()): Promise<ReviewDesk> {
     created_at: Date;
   }>(
     `SELECT d.id, d.state, d.step_number, d.subject, d.body,
-            c.display_email AS email, camp.name AS campaign, i.email AS inbox, d.created_at
+            COALESCE(c.display_email, d.to_addrs->0->>'email', 'manual') AS email,
+            COALESCE(camp.name, 'Manual') AS campaign,
+            i.email AS inbox, d.created_at
      FROM review_drafts d
-     JOIN enrollments e ON e.id = d.enrollment_id
-     JOIN contacts c ON c.id = e.contact_id
-     JOIN campaigns camp ON camp.id = e.campaign_id
+     LEFT JOIN enrollments e ON e.id = d.enrollment_id
+     LEFT JOIN contacts c ON c.id = e.contact_id
+     LEFT JOIN campaigns camp ON camp.id = e.campaign_id
      LEFT JOIN inboxes i ON i.id = d.inbox_id
      WHERE d.state IN ('pending', 'edited', 'approved')
      ORDER BY d.created_at`,

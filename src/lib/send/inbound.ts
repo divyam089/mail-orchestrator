@@ -1,5 +1,6 @@
 import type { Db } from "@/lib/db/pool";
 import { normalizeEmail } from "@/lib/email/normalize";
+import { classifyByRules } from "@/lib/mail/classify";
 import { etDateISO } from "@/lib/window";
 
 const BOUNCE_FROM = /^(mailer-daemon|postmaster)@/i;
@@ -134,5 +135,12 @@ export async function stopFromInbound(db: Db, input: InboundStop): Promise<{ sto
     reason: "reply",
     now,
   });
+  const label = classifyByRules({ subject: input.subject, body: input.bodyText });
+  if (label === "interested" || label === "not_now" || label === "not_interested") {
+    await db.query(
+      `UPDATE messages SET classification = $3 WHERE inbox_id = $1 AND gmail_message_id = $2`,
+      [input.inboxId, input.gmailMessageId, label],
+    );
+  }
   return { stopped: 1 };
 }
