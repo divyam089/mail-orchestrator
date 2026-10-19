@@ -54,12 +54,15 @@ export class MemorySendQueue implements SendQueue {
   }
 }
 
+export const SEND_QUEUE_READY = "outreach:send-queue";
+export const SEND_QUEUE_PROCESSING = "outreach:send-queue:processing";
+
 /** RPUSH ready, claim moves the job onto a processing list, restart puts that list back. */
 export class RedisSendQueue implements SendQueue {
   constructor(
     private readonly redis: Redis,
-    private readonly readyKey = "outreach:send-queue",
-    private readonly processingKey = "outreach:send-queue:processing",
+    private readonly readyKey = SEND_QUEUE_READY,
+    private readonly processingKey = SEND_QUEUE_PROCESSING,
   ) {}
 
   async push(job: SendJob): Promise<void> {

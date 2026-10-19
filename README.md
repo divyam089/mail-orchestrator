@@ -1,6 +1,6 @@
 # Figcel Outreach
 
-Cold-email ledger for 15 Google Workspace mailboxes. Step 5 is the mailbox: one inbox over the synced mail, with replies held in Review while approval is off. The kill switch ships off, so this process does not send.
+Cold-email ledger for 15 Google Workspace mailboxes. Step 6 is the live dashboard: ledger counts for a date range, pushed over server-sent events when a send, reply, bounce, draft, pause, or alert commits. The kill switch ships off, so this process does not send.
 
 ```
 UI ──┐
@@ -106,6 +106,20 @@ SEND_MODE=seed-only SENDING_ENABLED=true \
 ```
 
 The seed address must already be in `seed_addresses`. Without those flags the script exits before it imports the Gmail sender. Put approval back to review and `SENDING_ENABLED` back to false afterwards.
+
+## Dashboard
+
+`/dashboard` shows today, or a from/to range, with totals, per inbox, per campaign, per day, a step-and-variant funnel, inbox health, and alerts. Each of those tables has a CSV link.
+
+The browser uses server-sent events (`/api/dashboard/stream`), not a WebSocket. Updates travel server to client only, and this Next.js process already speaks HTTP, so EventSource is enough. It reconnects on its own and sends `Last-Event-ID`.
+
+Postgres `LISTEN/NOTIFY` is the bus. Redis stays the send queue. Triggers on sends, events, review drafts, pauses, alerts, schedule, suppression, and inbox status append a `dashboard_events` row and `pg_notify('dashboard', id)` after the writing transaction commits. A dropped connection replays every id after `Last-Event-ID`, then live frames. The page refetches `/api/dashboard` on each change, so the numbers are the ledger, not a client-side increment. A Redis-only queue move that does not write Postgres does not push until the next ledger row. Queue depth is `LLEN` on that refresh. If Redis cannot be read, ready and processing say `unavailable`.
+
+Complaints say `no source` until `app_kv.complaint_source` is a real source or a complaint event exists. Opens and clicks say `tracking off` unless that campaign has tracking on, and then they are labeled unreliable because Apple Mail Privacy Protection inflates opens. Warmup says `TODO: warmup provider` until someone records a manual or provider-reported status. Seed placement is a seed-test estimate, never real-recipient placement. Bounce rate over the last 200 says `no data yet` when that inbox has no sent mail. Days with no ledger rows are omitted. `no data yet` is also the empty state for a funnel, a disconnect, a pause, and a failed job.
+
+CSV routes: `/api/dashboard/export?view=summary|by-inbox|by-campaign|by-day|funnel|health|alerts|caps`, with the same `from` and `to`.
+
+The approval banner stays on this page. `SENDING_ENABLED` is still false.
 
 ## Import and verification
 
