@@ -38,6 +38,28 @@ export async function pause(
   return true;
 }
 
+export async function resumeInbox(
+  db: Db,
+  input: { email: string; actor: string; source: "ui" | "api" | "system"; note?: string | null },
+): Promise<number> {
+  const updated = await db.query(
+    `UPDATE pauses
+     SET resumed_at = now(), resumed_by = $2, resume_note = $3
+     WHERE resumed_at IS NULL AND scope = 'inbox' AND target = $1`,
+    [input.email, input.actor, input.note ?? null],
+  );
+  await db.query(`UPDATE inboxes SET status = 'active' WHERE email = $1 AND status = 'paused'`, [input.email]);
+  await audit(db, {
+    source: input.source,
+    actor: input.actor,
+    action: "inbox.resume",
+    entityType: "inboxes",
+    entityId: input.email,
+    detail: { resumed: updated.rowCount ?? 0 },
+  });
+  return updated.rowCount ?? 0;
+}
+
 export async function inboxPaused(
   db: Db,
   inbox: { email: string; domain: string },

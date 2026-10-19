@@ -46,6 +46,12 @@ export function GateBanner({ status }: { status: SystemStatus }) {
             <Link className="text-muted underline decoration-line underline-offset-2" href="/dashboard">
               Dashboard
             </Link>
+            <Link className="text-muted underline decoration-line underline-offset-2" href="/api/docs">
+              API
+            </Link>
+            <Link className="text-muted underline decoration-line underline-offset-2" href="/keys">
+              Keys
+            </Link>
           </div>
         </div>
         <div className="grid grid-cols-2 gap-x-4 gap-y-2 sm:flex sm:gap-6">
@@ -67,7 +73,7 @@ export function StatusBoard({ status }: { status: SystemStatus }) {
   const groups = groupInboxes(status);
   return (
     <main className="mx-auto max-w-6xl px-4 py-8 sm:px-6 sm:py-10">
-      <p className="text-[11px] uppercase tracking-[0.18em] text-muted">Step 6 of 8 · Live dashboard</p>
+      <p className="text-[11px] uppercase tracking-[0.18em] text-muted">Step 7 of 8 · API</p>
       <h1 className="font-display mt-2 max-w-3xl text-4xl leading-tight sm:text-5xl">
         Sending is off. Approval stays in the review queue.
       </h1>
@@ -89,7 +95,11 @@ export function StatusBoard({ status }: { status: SystemStatus }) {
         <Link className="text-ink underline decoration-line underline-offset-2" href="/dashboard">
           Dashboard
         </Link>{" "}
-        follows the ledger over a live stream: sends, replies, pauses, and alerts show up after they commit.
+        follows the ledger over a live stream: sends, replies, pauses, and alerts show up after they commit.{" "}
+        <Link className="text-ink underline decoration-line underline-offset-2" href="/api/docs">
+          API
+        </Link>{" "}
+        exposes those same actions under /api/v1. A key cannot turn the kill switch on.
       </p>
       <p className="mt-3 max-w-2xl text-base leading-relaxed text-muted">
         This server does not call Gmail. A connect check and a sync run on a machine that has the service-account

@@ -1,6 +1,6 @@
 # Figcel Outreach
 
-Cold-email ledger for 15 Google Workspace mailboxes. Step 6 is the live dashboard: ledger counts for a date range, pushed over server-sent events when a send, reply, bounce, draft, pause, or alert commits. The kill switch ships off, so this process does not send.
+Cold-email ledger for 15 Google Workspace mailboxes. Step 7 is the REST API: the same actions as the UI, under `/api/v1`, with hashed keys and the same send gates. The kill switch ships off, so this process does not send.
 
 ```
 UI ──┐
@@ -120,6 +120,23 @@ Complaints say `no source` until `app_kv.complaint_source` is a real source or a
 CSV routes: `/api/dashboard/export?view=summary|by-inbox|by-campaign|by-day|funnel|health|alerts|caps`, with the same `from` and `to`.
 
 The approval banner stays on this page. `SENDING_ENABLED` is still false.
+
+## API
+
+`/api/docs` lists every route. The OpenAPI 3.1 document is `/api/v1/openapi.json`.
+
+Keys are created on `/keys` and revoked there. The raw secret is shown once. The database stores SHA-256. A key has the role `admin`, `operator`, or `viewer`, the same three roles as `users`. Optional scopes narrow that role. They cannot add a permission the role does not have. Each key has a per-minute rate limit. Every API call writes `audit_log` with `source = api` and `actor = api:<key name>`.
+
+POSTs that create a send or a draft require `Idempotency-Key`. The same key and body return the first response. A different body is a conflict.
+
+`GET /api/v1/events` is server-sent events on the dashboard `LISTEN/NOTIFY` bus. Frames are `reply.received`, `bounce`, `inbox.paused`, and `draft.awaiting_review`. This process does not call outbound webhooks.
+
+The API calls the same approval, cap, ramp, window, suppression, stop-rule, and `SENDING_ENABLED` checks as the desk. A request body cannot set the kill switch.
+
+```bash
+curl -s http://127.0.0.1:43123/api/v1/campaigns \
+  -H "authorization: Bearer $FIGCEL_API_KEY"
+```
 
 ## Import and verification
 

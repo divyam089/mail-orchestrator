@@ -134,6 +134,8 @@ export async function writeDashboardStream(opts: {
   lastEventId: string | null;
   write: (chunk: string) => void;
   signal: AbortSignal;
+  /** When set, a frame is emitted only if this returns a name. The v1 stream uses it. */
+  present?: (event: DashboardEvent) => Promise<{ name: string; data: unknown } | null>;
 }): Promise<void> {
   const hub = await dashboardHub(opts.connectionString);
   const buffered: DashboardEvent[] = [];
@@ -144,17 +146,33 @@ export async function writeDashboardStream(opts: {
   const live = (event: DashboardEvent) => {
     if (event.id <= last) return;
     last = event.id;
-    opts.write(formatSse(event.id, "change", event));
+    if (!opts.present) {
+      opts.write(formatSse(event.id, "change", event));
+      return;
+    }
+    void opts.present(event).then((frame) => {
+      if (frame && !opts.signal.aborted) opts.write(formatSse(event.id, frame.name, frame.data));
+    });
   };
   try {
     hub.subscribers.add(live);
+    const emitPresented = async (event: DashboardEvent) => {
+      if (!opts.present) {
+        live(event);
+        return;
+      }
+      if (event.id <= last) return;
+      last = event.id;
+      const frame = await opts.present(event);
+      if (frame) opts.write(formatSse(event.id, frame.name, frame.data));
+    };
     if (opts.lastEventId != null) {
       const missed = await eventsAfter(opts.connectionString, last);
-      for (const event of missed) live(event);
+      for (const event of missed) await emitPresented(event);
     }
     while (buffered.length > 0) {
       const event = buffered.shift();
-      if (event) live(event);
+      if (event) await emitPresented(event);
     }
     hub.subscribers.delete(onEvent);
     opts.write(formatSse(last, "ready", { after: last }));
