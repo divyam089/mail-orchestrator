@@ -1,0 +1,89 @@
+@import "tailwindcss";
+
+:root {
+  color-scheme: light;
+  --paper: #f3f2ee;
+  --ink: #1c2430;
+  --muted: #4d5968;
+  --line: #e3e1da;
+  --card: #fafaf8;
+  --accent: #24556f;
+  --rust: #8c3530;
+  --moss: #17643e;
+  --amber: #7a4e0c;
+}
+
+html[data-theme="dark"] {
+  color-scheme: dark;
+  --paper: #1c1f24;
+  --ink: #ece8e1;
+  --muted: #c5c0b6;
+  --line: #3a3e46;
+  --card: #262a31;
+  --accent: #b7d4ea;
+  --rust: #f3c1ba;
+  --moss: #b7dcc8;
+  --amber: #f0d7a2;
+}
+
+@theme inline {
+  --color-paper: var(--paper);
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-line: var(--line);
+  --color-card: var(--card);
+  --color-accent: var(--accent);
+  --color-rust: var(--rust);
+  --color-moss: var(--moss);
+  --color-amber: var(--amber);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+body {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-geist-sans), "Segoe UI", sans-serif;
+  font-size: 16px;
+  line-height: 1.55;
+}
+
+.font-display {
+  font-family: Palatino, "Palatino Linotype", "Iowan Old Style", Georgia, serif;
+}
+
+.num {
+  font-variant-numeric: tabular-nums;
+}
+
+.when-dark {
+  display: none;
+}
+
+html[data-theme="dark"] .when-dark {
+  display: inline;
+}
+
+html[data-theme="dark"] .when-light {
+  display: none;
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

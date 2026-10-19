@@ -1,0 +1,32 @@
+# Local Postgres and Redis only. The database password is for this compose
+# file, not a production secret. Do not point it at a hosted database.
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: outreach
+      POSTGRES_PASSWORD: outreach
+      POSTGRES_DB: outreach
+    ports:
+      - "127.0.0.1:54329:5432"
+    volumes:
+      - outreach_pg:/var/lib/postgresql/data
+      - ./docker/initdb:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U outreach -d outreach"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "127.0.0.1:63799:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+volumes:
+  outreach_pg:

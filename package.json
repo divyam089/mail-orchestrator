@@ -1,0 +1,44 @@
+{
+  "name": "figcel-outreach",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev -p 43123 -H 0.0.0.0",
+    "build": "next build",
+    "start": "next start -p 43123 -H 0.0.0.0",
+    "lint": "eslint",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "migrate": "tsx scripts/db-prepare.ts",
+    "db:up": "docker compose up -d",
+    "inbox:check": "tsx scripts/inbox-check.ts",
+    "inbox:sync": "tsx scripts/inbox-sync.ts",
+    "inbox:schedule": "tsx scripts/inbox-schedule.ts",
+    "send:worker": "tsx scripts/send-worker.ts",
+    "mail:unsnooze": "tsx scripts/mail-unsnooze.ts",
+    "mail:verify-sent": "tsx scripts/verify-sent-thread.ts"
+  },
+  "dependencies": {
+    "google-auth-library": "^11.3.1",
+    "ioredis": "^6.0.0",
+    "next": "15.5.28",
+    "pg": "^8.23.1",
+    "react": "19.1.0",
+    "react-dom": "19.1.0"
+  },
+  "devDependencies": {
+    "@eslint/eslintrc": "^3",
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^20",
+    "@types/pg": "^8.23.1",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "dotenv": "^18.0.8",
+    "eslint": "^9",
+    "eslint-config-next": "15.5.28",
+    "tailwindcss": "^4",
+    "tsx": "^4.23.15",
+    "typescript": "^5",
+    "vitest": "^3.2.7"
+  }
+}
