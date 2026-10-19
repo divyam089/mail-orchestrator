@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { guard } from "@/lib/auth/guard";
 import { getPool } from "@/lib/db/pool";
 import { readSendMode, readSendingEnabled } from "@/lib/gates";
 import { MockMailAdapter } from "@/lib/mail/adapter";
@@ -8,7 +9,9 @@ import { decideDraft, editDraft } from "@/lib/send/review";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-export async function GET() {
+export async function GET(request: Request) {
+  const gate = await guard(request, "viewer");
+  if ("response" in gate) return gate.response;
   try {
     return NextResponse.json(await loadReviewDesk());
   } catch (error) {
@@ -18,6 +21,8 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
+  const gate = await guard(request, "operator");
+  if ("response" in gate) return gate.response;
   const body = (await request.json()) as {
     id?: string;
     action?: "edit" | "approve" | "reject";
@@ -37,7 +42,7 @@ export async function POST(request: Request) {
         id: body.id,
         subject: body.subject,
         body: body.body,
-        actor: "operator",
+        actor: gate.user.actor,
         source: "ui",
       });
       if (!result.ok) return NextResponse.json(result, { status: 409 });
@@ -46,7 +51,7 @@ export async function POST(request: Request) {
     const result = await decideDraft(pool, {
       id: body.id,
       action: body.action,
-      actor: "operator",
+      actor: gate.user.actor,
       source: "ui",
       adapter: new MockMailAdapter(),
       sendingEnabled: readSendingEnabled(),

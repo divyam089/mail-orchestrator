@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { guard } from "@/lib/auth/guard";
 import { createApiKey, listApiKeys } from "@/lib/api/keys";
 import type { ApiRole } from "@/lib/api/actions";
 import { getPool } from "@/lib/db/pool";
@@ -7,7 +8,9 @@ import { audit } from "@/lib/send/settings";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-export async function GET() {
+export async function GET(request: Request) {
+  const gate = await guard(request, "admin");
+  if ("response" in gate) return gate.response;
   try {
     return NextResponse.json(await listApiKeys(getPool()));
   } catch (error) {
@@ -17,6 +20,8 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
+  const gate = await guard(request, "admin");
+  if ("response" in gate) return gate.response;
   const body = (await request.json()) as { name?: string; role?: ApiRole; scopes?: string[]; rateLimitPerMinute?: number };
   if (!body.name || (body.role !== "admin" && body.role !== "operator" && body.role !== "viewer")) {
     return NextResponse.json({ error: { code: "validation", message: "name and role are required" } }, { status: 400 });
@@ -30,7 +35,7 @@ export async function POST(request: Request) {
     });
     await audit(getPool(), {
       source: "ui",
-      actor: "ui:admin",
+      actor: gate.user.actor,
       action: "keys.create",
       entityType: "api_keys",
       entityId: created.record.id,

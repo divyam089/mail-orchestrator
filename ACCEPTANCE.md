@@ -2,9 +2,9 @@
 
 Run on 2026-10-19 with `npx vitest run`.
 
-30 files, 136 tests, all passed. `SENDING_ENABLED` and `GMAIL_MIRROR_ENABLED` stayed false in the process environment. Tests that exercise a send pass `sendingEnabled: true` into the engine and use `MockMailAdapter`. No test opens a network socket to Gmail or to a DNS server.
+33 files, 149 tests, all passed. `SENDING_ENABLED` and `GMAIL_MIRROR_ENABLED` stayed false in the process environment. Tests that exercise a send pass `sendingEnabled: true` into the engine and use `MockMailAdapter`. No test opens a network socket to Gmail or to a DNS server. Google sign-in is a fake provider in tests. The real client id and secret are empty, so the process does not call Google.
 
-The live dashboard stream in that run: 2.9 ms to the first change, 2.3 ms backfill, 2.1 ms live after backfill.
+The live dashboard stream in that run: 2.9 ms to the first change, 2.2 ms backfill, 1.7 ms live after backfill.
 
 ## Results
 
@@ -26,8 +26,8 @@ The live dashboard stream in that run: 2.9 ms to the first change, 2.3 ms backfi
 | Dashboard reflects a new send or reply within about 1 second | pass | `tests/dashboard-stream.integration.test.ts`. This run: 2.9 ms, backfill 2.3 ms, live-after-backfill 2.1 ms. |
 | API has an endpoint for every UI action | pass | `tests/api-registry.test.ts` walks `UI_ACTIONS` and fails if a handler or an OpenAPI operation is missing. |
 | API cannot bypass the gates | pass | `tests/api.integration.test.ts`. A body of `sendingEnabled: true` and `sendMode: live` is ignored. With approval on, the call is still deferred for dry-run and writes no sent row. Suppression returns `gate_blocked`. |
-| Audit log records the actor | pass | API rows use `actor = api:<key name>` (`tests/api.integration.test.ts`). Approval changes record `source = ui` (`tests/send-engine.integration.test.ts`). |
-| Roles | pass for API keys. fail for user login | Viewer, operator, and admin scopes are separate (`tests/acceptance.integration.test.ts`, `tests/api.integration.test.ts`). There is no user login. `/keys` is the local admin desk. |
+| Audit log records the actor | pass | API rows use `actor = api:<key name>` (`tests/api.integration.test.ts`). Desk sign-in and team changes use `actor = user:<email>` (`tests/auth.integration.test.ts`). Approval changes record `source = ui` (`tests/send-engine.integration.test.ts`). |
+| Roles | pass | Viewer, operator, and admin scopes are separate (`tests/acceptance.integration.test.ts`, `tests/api.integration.test.ts`). Operator can run campaigns and approve drafts. Operator cannot pause an inbox or change approval. Admin can. Invite-only Google sign-in, sessions, CSRF, and the route walker are in `tests/auth.integration.test.ts`, `tests/auth-routes.test.ts`, and `tests/middleware.test.ts`. |
 | CSV export | pass | `tests/dashboard-view.test.tsx` links summary, funnel, and alerts exports and escapes formula cells. `tests/api.integration.test.ts` returns the dashboard CSV, including the complaints cell. |
 | Complaints, opens, and sample labels stay honest | pass | `tests/dashboard-view.test.tsx` expects `no source`, `tracking off`, and the Apple Mail note. Tracked opens are labeled unreliable. |
 | A full day of 405 sends across 15 inboxes, fake Gmail | pass | `tests/acceptance.integration.test.ts`. Ramp is held at 27, new prospects stay at 9 per inbox, 18 follow-ups fill the rest. 405 mock sends, 27 on each of 15 inboxes. A replay sends nothing more. One more schedule is deferred because a cap is reached. The process kill switch stays false. |
@@ -47,6 +47,7 @@ These are still unset. Sending hard-blocks while the legal lines are TODO, and t
 - `TODO: warmup provider`. Warmup status is blank.
 - Complaint source is unset, so the dashboard says `no source`.
 - `TODO: reply model`. Classification is the rules list only.
-- No user login. API keys carry admin, operator, and viewer. The keys page is open on this local process.
+- `TODO: GOOGLE_OIDC_CLIENT_ID` and `TODO: GOOGLE_OIDC_CLIENT_SECRET`. The Google button returns to the sign-in page and does not call Google.
+- `LOCAL_LOGIN_ENABLED` is not true. Magic-link delivery is `TODO: mailer`. The raw token is stored only as a SHA-256 hash.
 
 Placement numbers, when present, are seed-test estimates. They are not real-recipient placement.

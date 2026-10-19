@@ -6,6 +6,7 @@ import type { ReplyClass } from "@/lib/mail/classify";
 import type { ThreadDetail, ThreadSummary } from "@/lib/mail/mailbox";
 import { moveSelection, shortcutFor } from "@/lib/mail/shortcuts";
 import { MailboxView, type ComposeDraft, type MailFilters } from "@/components/mailbox-view";
+import { csrfHeaders, errorText } from "@/lib/auth/csrf-client";
 
 type Template = { id: string; name: string; subject: string | null; body: string };
 
@@ -18,6 +19,7 @@ export function MailWorkspace({
   templates,
   filters,
   approvalMode,
+  canWrite = true,
 }: {
   threads: ThreadSummary[];
   detail: ThreadDetail | null;
@@ -27,6 +29,7 @@ export function MailWorkspace({
   templates: Template[];
   filters: MailFilters;
   approvalMode: string;
+  canWrite?: boolean;
 }) {
   const router = useRouter();
   const [rows, setRows] = useState(threads);
@@ -74,7 +77,7 @@ export function MailWorkspace({
   }
 
   function openCompose(mode: ComposeDraft["mode"]) {
-    if (!current) return;
+    if (!canWrite || !current) return;
     const last = current.messages[current.messages.length - 1];
     const counterparty =
       last?.fromEmail && last.fromEmail !== current.inboxEmail ? last.fromEmail : addresses(last?.to)[0] ?? "";
@@ -94,18 +97,18 @@ export function MailWorkspace({
   }
 
   async function act(payload: Record<string, unknown>) {
-    if (!selectedId) return;
+    if (!canWrite || !selectedId) return;
     setBusy(true);
     setNotice(null);
     try {
       const response = await fetch(`/api/mail/threads/${selectedId}`, {
         method: "POST",
-        headers: { "content-type": "application/json" },
+        headers: csrfHeaders({ "content-type": "application/json" }),
         body: JSON.stringify(payload),
       });
       const data = (await response.json()) as { error?: string };
       if (!response.ok) {
-        setNotice(data.error ?? "Could not update the thread");
+        setNotice(errorText(data, "Could not update the thread"));
         return;
       }
       if (payload.action === "archive" || payload.action === "snooze") {
@@ -145,6 +148,7 @@ export function MailWorkspace({
         if (thread) void api.openThread(thread.id);
         return;
       }
+      if (!canWrite) return;
       if (action === "reply") api.openCompose("reply");
       if (action === "reply_all") api.openCompose("reply_all");
       if (action === "forward") api.openCompose("forward");
@@ -153,7 +157,7 @@ export function MailWorkspace({
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, []);
+  }, [canWrite]);
 
   async function send() {
     if (!compose || !current) return;
@@ -164,7 +168,7 @@ export function MailWorkspace({
       const last = current.messages[current.messages.length - 1];
       const response = await fetch("/api/mail/compose", {
         method: "POST",
-        headers: { "content-type": "application/json" },
+        headers: csrfHeaders({ "content-type": "application/json" }),
         body: JSON.stringify({
           inboxEmail: current.inboxEmail,
           mode: compose.mode,
@@ -178,7 +182,7 @@ export function MailWorkspace({
       });
       const data = (await response.json()) as { error?: string; outcome?: string; reason?: string };
       if (!response.ok) {
-        setNotice(data.error ?? "Compose failed");
+        setNotice(errorText(data, "Compose failed"));
         return;
       }
       if (data.outcome === "drafted") {
@@ -208,6 +212,7 @@ export function MailWorkspace({
       compose={compose}
       notice={notice}
       busy={busy}
+      canWrite={canWrite}
       onPane={setPane}
       onSelect={(id) => void openThread(id)}
       onHelp={setHelpOpen}
@@ -228,7 +233,7 @@ export function MailWorkspace({
         if (!contactId) return;
         await fetch(`/api/mail/contacts/${contactId}`, {
           method: "POST",
-          headers: { "content-type": "application/json" },
+          headers: csrfHeaders({ "content-type": "application/json" }),
           body: JSON.stringify({ kind: "note", body }),
         });
         if (selectedId) await openThread(selectedId);
@@ -238,7 +243,7 @@ export function MailWorkspace({
         if (!contactId) return;
         await fetch(`/api/mail/contacts/${contactId}`, {
           method: "POST",
-          headers: { "content-type": "application/json" },
+          headers: csrfHeaders({ "content-type": "application/json" }),
           body: JSON.stringify({ kind: "tag", name }),
         });
         if (selectedId) await openThread(selectedId);

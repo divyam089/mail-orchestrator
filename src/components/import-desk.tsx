@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { csrfHeaders, errorText } from "@/lib/auth/csrf-client";
 import { parseCsvTable, type FieldMapping } from "@/lib/contacts/parse-leads";
 import type { ImportDesk as DeskData, HoldItem } from "@/lib/contacts/desk";
 import type { ImportReport } from "@/lib/contacts/import";
@@ -25,7 +26,15 @@ function Count({ label, value }: { label: string; value: number }) {
   );
 }
 
-export function ImportDesk({ initial, loadError }: { initial: DeskData | null; loadError: string | null }) {
+export function ImportDesk({
+  initial,
+  loadError,
+  canWrite = true,
+}: {
+  initial: DeskData | null;
+  loadError: string | null;
+  canWrite?: boolean;
+}) {
   const [source, setSource] = useState<"paste" | "csv">("paste");
   const [text, setText] = useState("Jane Doe <jane.doe+sales@gmail.com>\njane@acme.test");
   const [tags, setTags] = useState("");
@@ -92,7 +101,7 @@ export function ImportDesk({ initial, loadError }: { initial: DeskData | null; l
     try {
       const response = await fetch("/api/imports", {
         method: "POST",
-        headers: { "content-type": "application/json" },
+        headers: csrfHeaders({ "content-type": "application/json" }),
         body: JSON.stringify({
           source,
           text,
@@ -103,7 +112,7 @@ export function ImportDesk({ initial, loadError }: { initial: DeskData | null; l
       });
       const body = (await response.json()) as ImportReport & { error?: string };
       if (!response.ok) {
-        setError(body.error ?? "Import failed");
+        setError(errorText(body, "Import failed"));
         setReport(null);
       } else {
         setReport(body);
@@ -122,11 +131,11 @@ export function ImportDesk({ initial, loadError }: { initial: DeskData | null; l
     try {
       const response = await fetch(`/api/holds/${id}`, {
         method: "POST",
-        headers: { "content-type": "application/json" },
+        headers: csrfHeaders({ "content-type": "application/json" }),
         body: JSON.stringify({ action }),
       });
       const body = (await response.json()) as { error?: string };
-      if (!response.ok) setError(body.error ?? "Could not update that hold");
+      if (!response.ok) setError(errorText(body, "Could not update that hold"));
       await refreshDesk();
     } catch {
       setError("Could not update that hold.");
@@ -244,11 +253,12 @@ export function ImportDesk({ initial, loadError }: { initial: DeskData | null; l
         <button
           type="button"
           className="mt-4 border border-ink bg-ink px-4 py-2 text-sm text-paper disabled:opacity-50"
-          disabled={busy || (source === "csv" && !mapping.email)}
+          disabled={!canWrite || busy || (source === "csv" && !mapping.email)}
           onClick={() => void submit()}
         >
           {busy ? "Working" : "Import"}
         </button>
+        {canWrite ? null : <p className="mt-2 text-sm text-muted">This role can read the hold list. An operator imports.</p>}
       </section>
 
       {report ? (
@@ -299,7 +309,7 @@ export function ImportDesk({ initial, loadError }: { initial: DeskData | null; l
                   <button
                     type="button"
                     className="border border-moss px-3 py-1 text-sm text-moss disabled:opacity-50"
-                    disabled={busy}
+                    disabled={!canWrite || busy}
                     onClick={() => void decide(hold.id, "approve")}
                   >
                     Approve
@@ -307,7 +317,7 @@ export function ImportDesk({ initial, loadError }: { initial: DeskData | null; l
                   <button
                     type="button"
                     className="border border-rust px-3 py-1 text-sm text-rust disabled:opacity-50"
-                    disabled={busy}
+                    disabled={!canWrite || busy}
                     onClick={() => void decide(hold.id, "reject")}
                   >
                     Reject

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { guard } from "@/lib/auth/guard";
 import { getPool } from "@/lib/db/pool";
 import { decideHold, type HoldDecision } from "@/lib/contacts/holds";
 
@@ -6,6 +7,8 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function POST(request: Request, context: { params: Promise<{ id: string }> }) {
+  const gate = await guard(request, "operator");
+  if ("response" in gate) return gate.response;
   const { id } = await context.params;
   let body: { action?: string };
   try {
@@ -18,7 +21,7 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
   }
   const action: HoldDecision = body.action;
   try {
-    const result = await decideHold(getPool(), { holdId: id, action, actor: "operator", source: "ui" });
+    const result = await decideHold(getPool(), { holdId: id, action, actor: gate.user.actor, source: "ui" });
     if (!result.ok) {
       return NextResponse.json({ error: result.reason === "not_found" ? "Hold not found." : "That hold is already decided." }, { status: 409 });
     }

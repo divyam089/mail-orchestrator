@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { guard } from "@/lib/auth/guard";
 import { getPool } from "@/lib/db/pool";
 import type { ApprovalMode } from "@/lib/gates";
 import { setApprovalMode } from "@/lib/send/review";
@@ -7,6 +8,8 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function POST(request: Request) {
+  const gate = await guard(request, "admin");
+  if ("response" in gate) return gate.response;
   const body = (await request.json()) as {
     scope?: "global" | "campaign";
     mode?: ApprovalMode;
@@ -21,7 +24,7 @@ export async function POST(request: Request) {
       mode: body.mode,
       campaignId: body.campaignId,
       source: "ui",
-      actor: "operator",
+      actor: gate.user.actor,
     });
     return NextResponse.json(result);
   } catch (error) {

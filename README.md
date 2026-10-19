@@ -1,6 +1,6 @@
 # Figcel Outreach
 
-Cold-email ledger for 15 Google Workspace mailboxes. Step 7 is the REST API: the same actions as the UI, under `/api/v1`, with hashed keys and the same send gates. Step 8 is the acceptance run in `ACCEPTANCE.md`. The desk is a soft off-white by default, with a Dark control in the banner. The kill switch ships off, so this process does not send.
+Cold-email ledger for 15 Google Workspace mailboxes. Step 7 is the REST API: the same actions as the UI, under `/api/v1`, with hashed keys and the same send gates. Step 8 is the acceptance run in `ACCEPTANCE.md`. Step 9 is invite-only sign-in. The desk is a soft off-white by default, with a Dark control in the banner. The kill switch ships off, so this process does not send.
 
 ```
 UI ──┐
@@ -48,8 +48,21 @@ Tests that touch the database use `DATABASE_URL_TEST` and a mocked mail adapter.
 | `SENDING_ENABLED` | Kill switch. Only the exact value `true` can pass the gate. Default `false`. |
 | `SEND_MODE` | `dry-run` (default), `seed-only`, or `live`. This build has no live sender. |
 | `GMAIL_SA_KEY_PATH` | Absolute path to the service-account JSON on the machine that has the key. Empty in this repo. Never commit the file. |
+| `GOOGLE_OIDC_CLIENT_ID` | TODO. Empty means the Google button does not call Google. |
+| `GOOGLE_OIDC_CLIENT_SECRET` | TODO. Leave empty. Do not invent a client. |
+| `LOCAL_LOGIN_ENABLED` | Exact `true` turns on password and magic-link sign-in. Default off. Mail delivery is TODO. |
+| `BOOTSTRAP_ADMIN_EMAIL` | First admin, invited when no admin exists. |
+| `SESSION_SECRET` | Signs the session cookie. Empty uses a local placeholder that is not a credential. |
 
 The compose password is a local default, not a production secret. Legal name, postal address, verification vendor, unsubscribe URL, and hosting are `TODO` until they are supplied. Sending stays blocked while the legal name or postal address is still TODO.
+
+## Sign-in
+
+Google is the sign-in, and only an invited email can finish it. An admin invites from `/team` and picks viewer, operator, or admin. A viewer reads. An operator runs campaigns, imports, approves review drafts, and replies under the same gates as before. An admin also manages people, API keys, inbox pause, the approval toggle, and the domain restriction. `SENDING_ENABLED` stays an environment variable. No page can turn it on.
+
+Sessions last 12 hours. The session cookie is httpOnly and SameSite=Lax. A readable CSRF cookie has to match the `x-csrf-token` header on every change. Sign out everywhere revokes every session for that person. An optional setting limits invites and sign-in to usefigcel.com, tryfigcel.com, meetfigcel.com, getfigcel.com, and hellofigcel.com. It is off until an admin turns it on.
+
+`/api/v1` still uses API keys. The browser routes do not.
 
 ## Caps and window
 

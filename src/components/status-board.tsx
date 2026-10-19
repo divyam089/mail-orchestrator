@@ -1,5 +1,7 @@
 import Link from "next/link";
+import { SignOutControls } from "@/components/sign-out-controls";
 import { ThemeToggle } from "@/components/theme-toggle";
+import type { Role } from "@/lib/auth/roles";
 import type { SystemStatus } from "@/lib/status";
 
 function Chip({ label, value, tone }: { label: string; value: string; tone: "bad" | "ok" | "warn" | "neutral" }) {
@@ -29,7 +31,7 @@ function groupInboxes(status: SystemStatus) {
   return [...groups.entries()];
 }
 
-export function GateBanner({ status }: { status: SystemStatus }) {
+export function GateBanner({ status, user }: { status: SystemStatus; user: { email: string; role: Role } }) {
   const approval =
     status.approvalMode === "auto" ? "Auto-send ON" : status.approvalMode === "review" ? "Review queue · OFF" : "Unknown";
   return (
@@ -56,9 +58,16 @@ export function GateBanner({ status }: { status: SystemStatus }) {
             <Link className="text-muted underline decoration-line/80 underline-offset-4" href="/api/docs">
               API
             </Link>
-            <Link className="text-muted underline decoration-line/80 underline-offset-4" href="/keys">
-              Keys
-            </Link>
+            {user.role === "admin" ? (
+              <Link className="text-muted underline decoration-line/80 underline-offset-4" href="/keys">
+                Keys
+              </Link>
+            ) : null}
+            {user.role === "admin" ? (
+              <Link className="text-muted underline decoration-line/80 underline-offset-4" href="/team">
+                Team
+              </Link>
+            ) : null}
           </nav>
         </div>
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
@@ -72,7 +81,15 @@ export function GateBanner({ status }: { status: SystemStatus }) {
             <Chip label="Postgres" value={status.postgres} tone={status.postgres === "up" ? "ok" : "bad"} />
             <Chip label="Redis" value={status.redis} tone={status.redis === "up" ? "ok" : "bad"} />
           </div>
-          <ThemeToggle />
+          <div className="flex flex-col items-start gap-2 sm:items-end">
+            <p className="text-sm text-muted">
+              <span className="text-ink">{user.email}</span> · {user.role}
+            </p>
+            <div className="flex items-center gap-3">
+              <SignOutControls compact />
+              <ThemeToggle />
+            </div>
+          </div>
         </div>
       </div>
     </div>

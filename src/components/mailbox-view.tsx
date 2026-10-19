@@ -63,6 +63,7 @@ export function MailboxView({
   compose,
   notice,
   busy,
+  canWrite = true,
   onPane,
   onSelect,
   onHelp,
@@ -93,6 +94,7 @@ export function MailboxView({
   compose: ComposeDraft | null;
   notice: string | null;
   busy: boolean;
+  canWrite?: boolean;
   onPane?: (pane: "list" | "message" | "context") => void;
   onSelect?: (id: string) => void;
   onHelp?: (open: boolean) => void;
@@ -270,6 +272,7 @@ export function MailboxView({
                   <h2 className="font-display text-xl leading-tight">{detail.subject}</h2>
                   <span className="font-mono text-xs text-muted">{detail.inboxEmail}</span>
                 </div>
+                {canWrite ? (
                 <div className="mt-2 flex flex-wrap gap-1">
                   <button type="button" className="border border-line px-2 py-1 text-xs" disabled={busy} onClick={() => onCompose?.("reply")}>
                     Reply
@@ -294,6 +297,9 @@ export function MailboxView({
                   </button>
                   <LabelBox labels={labels} onLabel={onLabel} />
                 </div>
+                ) : (
+                  <p className="mt-2 text-xs text-muted">This role can read mail. An operator replies.</p>
+                )}
               </header>
               <div className="min-h-0 flex-1 overflow-auto px-4 py-3">
                 {detail.messages.map((message) => (
@@ -347,7 +353,7 @@ export function MailboxView({
           data-contact={detail?.context.contact?.email ?? ""}
           className={`min-h-0 overflow-auto rounded-xl bg-card p-4 text-[15px] ${hidden("context")}`}
         >
-          <ContextPane detail={detail} onSelect={onSelect} onClassify={onClassify} onNote={onNote} onTag={onTag} />
+          <ContextPane detail={detail} canWrite={canWrite} onSelect={onSelect} onClassify={onClassify} onNote={onNote} onTag={onTag} />
         </aside>
       </div>
 
@@ -503,12 +509,14 @@ function ComposeBox({
 
 function ContextPane({
   detail,
+  canWrite = true,
   onSelect,
   onClassify,
   onNote,
   onTag,
 }: {
   detail: ThreadDetail | null;
+  canWrite?: boolean;
   onSelect?: (id: string) => void;
   onClassify?: (messageId: string, label: ReplyClass) => void;
   onNote?: (body: string) => void;
@@ -549,7 +557,7 @@ function ContextPane({
       </section>
       <section>
         <h2 className="text-[11px] uppercase tracking-[0.14em] text-muted">Classification</h2>
-        {latest ? (
+        {latest && canWrite ? (
           <select
             className="mt-1 w-full border border-line bg-paper px-2 py-1"
             value={latest.classification ?? ""}
@@ -622,6 +630,7 @@ function ContextPane({
             </li>
           ))}
         </ul>
+        {canWrite ? (
         <form
           className="mt-2 flex gap-1"
           onSubmit={(event) => {
@@ -637,6 +646,7 @@ function ContextPane({
             Save
           </button>
         </form>
+        ) : null}
       </section>
       <section>
         <h2 className="text-[11px] uppercase tracking-[0.14em] text-muted">Tags</h2>
@@ -647,6 +657,7 @@ function ContextPane({
             </span>
           ))}
         </div>
+        {canWrite ? (
         <form
           className="mt-2 flex gap-1"
           onSubmit={(event) => {
@@ -662,6 +673,7 @@ function ContextPane({
             Add
           </button>
         </form>
+        ) : null}
       </section>
     </div>
   );

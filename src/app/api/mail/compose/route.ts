@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { guard } from "@/lib/auth/guard";
 import { getPool } from "@/lib/db/pool";
 import { readSendMode, readSendingEnabled } from "@/lib/gates";
 import { MockMailAdapter } from "@/lib/mail/adapter";
@@ -10,6 +11,8 @@ export const dynamic = "force-dynamic";
 const MODES = new Set<ComposeMode>(["reply", "reply_all", "forward", "new"]);
 
 export async function POST(request: Request) {
+  const gate = await guard(request, "operator");
+  if ("response" in gate) return gate.response;
   const body = (await request.json()) as {
     inboxEmail?: string;
     mode?: string;
@@ -37,7 +40,7 @@ export async function POST(request: Request) {
       text: body.text,
       attachments: body.attachments,
       clientToken: body.clientToken,
-      actor: "operator",
+      actor: gate.user.actor,
       source: "ui",
       sendingEnabled: readSendingEnabled(),
       sendMode: readSendMode(),

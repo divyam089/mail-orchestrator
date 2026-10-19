@@ -1,3 +1,4 @@
+import { guard } from "@/lib/auth/guard";
 import { writeDashboardStream } from "@/lib/dashboard/listen";
 
 export const runtime = "nodejs";
@@ -9,6 +10,8 @@ export const dynamic = "force-dynamic";
  * reply, bounce, unsubscribe, draft, pause, or alert commits.
  */
 export async function GET(request: Request) {
+  const gate = await guard(request, "viewer");
+  if ("response" in gate) return gate.response;
   const connectionString = process.env.DATABASE_URL;
   if (!connectionString) return new Response("DATABASE_URL is not set", { status: 500 });
   const abort = new AbortController();

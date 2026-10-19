@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { guard } from "@/lib/auth/guard";
 import { getPool } from "@/lib/db/pool";
 import { importLeads } from "@/lib/contacts/import";
 import { mapCsv, parsePaste, type FieldMapping } from "@/lib/contacts/parse-leads";
@@ -19,6 +20,8 @@ type ImportBody = {
 };
 
 export async function POST(request: Request) {
+  const gate = await guard(request, "operator");
+  if ("response" in gate) return gate.response;
   let body: ImportBody;
   try {
     body = (await request.json()) as ImportBody;

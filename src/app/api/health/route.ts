@@ -1,10 +1,13 @@
 import { NextResponse } from "next/server";
+import { guard } from "@/lib/auth/guard";
 import { loadStatus } from "@/lib/status";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-export async function GET() {
+export async function GET(request: Request) {
+  const gate = await guard(request, "viewer");
+  if ("response" in gate) return gate.response;
   const status = await loadStatus();
   return NextResponse.json({
     ok: status.ok && status.postgres === "up" && status.redis === "up",

@@ -35,15 +35,15 @@ export const UI_ACTIONS: UiAction[] = [
   { id: "holds.decide", ui: "Import", method: "POST", path: "/holds/{id}", role: "operator", scope: "verification.write", idempotent: false, summary: "Approve or reject a hold" },
   { id: "suppression.list", ui: "Suppression", method: "GET", path: "/suppression", role: "viewer", scope: "suppression.read", idempotent: false, summary: "List suppressions" },
   { id: "suppression.add", ui: "Suppression", method: "POST", path: "/suppression", role: "operator", scope: "suppression.write", idempotent: false, summary: "Suppress an address or a domain" },
-  { id: "approval.set", ui: "Review", method: "POST", path: "/approval", role: "operator", scope: "approval.write", idempotent: false, summary: "Set the global or per-campaign approval toggle" },
+  { id: "approval.set", ui: "Review", method: "POST", path: "/approval", role: "admin", scope: "approval.write", idempotent: false, summary: "Set the global or per-campaign approval toggle" },
   { id: "review.list", ui: "Review", method: "GET", path: "/review", role: "viewer", scope: "review.read", idempotent: false, summary: "List the review queue" },
   { id: "review.edit", ui: "Review", method: "POST", path: "/review/{id}/edit", role: "operator", scope: "review.write", idempotent: false, summary: "Edit a draft" },
   { id: "review.approve", ui: "Review", method: "POST", path: "/review/{id}/approve", role: "operator", scope: "review.write", idempotent: true, summary: "Approve a draft through the same gates as the UI" },
   { id: "review.reject", ui: "Review", method: "POST", path: "/review/{id}/reject", role: "operator", scope: "review.write", idempotent: false, summary: "Reject a draft" },
   { id: "review.bulk", ui: "Review", method: "POST", path: "/review/bulk", role: "operator", scope: "review.write", idempotent: true, summary: "Approve or reject many drafts" },
   { id: "inboxes.list", ui: "Inboxes", method: "GET", path: "/inboxes", role: "viewer", scope: "inboxes.read", idempotent: false, summary: "List inboxes" },
-  { id: "inboxes.pause", ui: "Inboxes", method: "POST", path: "/inboxes/{id}/pause", role: "operator", scope: "inboxes.write", idempotent: false, summary: "Pause an inbox and record the stop rule" },
-  { id: "inboxes.resume", ui: "Inboxes", method: "POST", path: "/inboxes/{id}/resume", role: "operator", scope: "inboxes.write", idempotent: false, summary: "Resume an inbox pause" },
+  { id: "inboxes.pause", ui: "Inboxes", method: "POST", path: "/inboxes/{id}/pause", role: "admin", scope: "inboxes.write", idempotent: false, summary: "Pause an inbox and record the stop rule" },
+  { id: "inboxes.resume", ui: "Inboxes", method: "POST", path: "/inboxes/{id}/resume", role: "admin", scope: "inboxes.write", idempotent: false, summary: "Resume an inbox pause" },
   { id: "inboxes.health", ui: "Dashboard", method: "GET", path: "/inboxes/{id}/health", role: "viewer", scope: "inboxes.read", idempotent: false, summary: "Inbox health from the ledger" },
   { id: "mail.search", ui: "Mail", method: "GET", path: "/mail/threads", role: "viewer", scope: "mail.read", idempotent: false, summary: "Search mail" },
   { id: "mail.thread", ui: "Mail", method: "GET", path: "/mail/threads/{id}", role: "viewer", scope: "mail.read", idempotent: false, summary: "Read a thread" },
@@ -81,20 +81,20 @@ const READ_SCOPES = [
   "events.read",
 ];
 
-const WRITE_SCOPES = [
+const OPERATOR_SCOPES = [
   "campaigns.write",
   "imports.write",
   "verification.write",
   "suppression.write",
-  "approval.write",
   "review.write",
-  "inboxes.write",
   "mail.write",
 ];
 
+const ADMIN_SCOPES = ["approval.write", "inboxes.write", "keys.manage"];
+
 export function scopesForRole(role: ApiRole): string[] {
-  if (role === "admin") return [...READ_SCOPES, ...WRITE_SCOPES, "keys.manage"];
-  if (role === "operator") return [...READ_SCOPES, ...WRITE_SCOPES];
+  if (role === "admin") return [...READ_SCOPES, ...OPERATOR_SCOPES, ...ADMIN_SCOPES];
+  if (role === "operator") return [...READ_SCOPES, ...OPERATOR_SCOPES];
   return [...READ_SCOPES];
 }
 

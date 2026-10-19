@@ -1,3 +1,4 @@
+import { guard } from "@/lib/auth/guard";
 import { getPool } from "@/lib/db/pool";
 import { CSV_VIEWS, snapshotCsv, type CsvView } from "@/lib/dashboard/csv";
 import { loadDashboard, parseRange } from "@/lib/dashboard/snapshot";
@@ -6,6 +7,8 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function GET(request: Request) {
+  const gate = await guard(request, "viewer");
+  if ("response" in gate) return gate.response;
   const url = new URL(request.url);
   const view = url.searchParams.get("view") ?? "";
   if (!CSV_VIEWS.includes(view as CsvView)) {

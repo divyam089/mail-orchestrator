@@ -2,9 +2,18 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { csrfHeaders, errorText } from "@/lib/auth/csrf-client";
 import type { ReviewDesk } from "@/lib/send/desk";
 
-export function ReviewDeskView({ initial }: { initial: ReviewDesk }) {
+export function ReviewDeskView({
+  initial,
+  canWrite = true,
+  canToggleApproval = true,
+}: {
+  initial: ReviewDesk;
+  canWrite?: boolean;
+  canToggleApproval?: boolean;
+}) {
   const router = useRouter();
   const [selected, setSelected] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -19,12 +28,12 @@ export function ReviewDeskView({ initial }: { initial: ReviewDesk }) {
     try {
       const response = await fetch(url, {
         method: "POST",
-        headers: { "content-type": "application/json" },
+        headers: csrfHeaders({ "content-type": "application/json" }),
         body: JSON.stringify(payload),
       });
       const data = (await response.json()) as { error?: string; reason?: string };
       if (!response.ok) {
-        setError(data.error ?? data.reason ?? "Request failed");
+        setError(errorText(data, "Request failed"));
         return;
       }
       router.refresh();
@@ -50,6 +59,7 @@ export function ReviewDeskView({ initial }: { initial: ReviewDesk }) {
         auto. Approving a draft does not send while the kill switch is off
         {initial.sendingEnabled ? "" : " — SENDING_ENABLED is false"}. Send mode is {initial.sendMode}.
       </p>
+      {canToggleApproval ? (
       <div className="mt-4 flex flex-wrap gap-2">
         <button
           type="button"
@@ -68,6 +78,11 @@ export function ReviewDeskView({ initial }: { initial: ReviewDesk }) {
           Approval on
         </button>
       </div>
+      ) : (
+        <p className="mt-4 text-sm text-muted">
+          {canWrite ? "An admin changes the approval toggle." : "This role can read the queue. An operator approves drafts."}
+        </p>
+      )}
       {initial.blockers.length > 0 ? (
         <ul className="mt-4 max-w-2xl space-y-1 text-sm text-rust">
           {initial.blockers.map((blocker) => (
@@ -84,6 +99,7 @@ export function ReviewDeskView({ initial }: { initial: ReviewDesk }) {
         </p>
       ) : (
         <>
+          {canWrite ? (
           <div className="mt-8 flex flex-wrap gap-2">
             <button
               type="button"
@@ -102,6 +118,7 @@ export function ReviewDeskView({ initial }: { initial: ReviewDesk }) {
               Reject selected
             </button>
           </div>
+          ) : null}
           <ul className="mt-4 space-y-4">
             {initial.drafts.map((draft) => (
               <li key={draft.id} className="rounded-xl bg-card p-5">
@@ -146,6 +163,7 @@ export function ReviewDeskView({ initial }: { initial: ReviewDesk }) {
                 ) : (
                   <pre className="mt-3 whitespace-pre-wrap font-mono text-sm leading-relaxed">{draft.body}</pre>
                 )}
+                {canWrite ? (
                 <div className="mt-3 flex flex-wrap gap-2">
                   <button
                     type="button"
@@ -175,6 +193,7 @@ export function ReviewDeskView({ initial }: { initial: ReviewDesk }) {
                     Reject
                   </button>
                 </div>
+                ) : null}
                 <p className="mt-2 text-xs text-muted">{draft.createdAt}</p>
               </li>
             ))}

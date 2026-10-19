@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { csrfHeaders, errorText } from "@/lib/auth/csrf-client";
 
 type KeyRow = {
   id: string;
@@ -29,13 +30,12 @@ export function KeyDesk({ keys }: { keys: unknown[] }) {
     try {
       const response = await fetch("/api/keys", {
         method: "POST",
-        headers: { "content-type": "application/json" },
+        headers: csrfHeaders({ "content-type": "application/json" }),
         body: JSON.stringify({ name, role }),
       });
       const data = (await response.json()) as { secret?: string; error?: { message?: string } | string };
       if (!response.ok) {
-        const message = typeof data.error === "string" ? data.error : data.error?.message;
-        setError(message ?? "Could not create the key");
+        setError(errorText(data, "Could not create the key"));
         return;
       }
       setSecret(data.secret ?? null);
@@ -50,7 +50,7 @@ export function KeyDesk({ keys }: { keys: unknown[] }) {
     setBusy(true);
     setError(null);
     try {
-      const response = await fetch(`/api/keys/${id}/revoke`, { method: "POST" });
+      const response = await fetch(`/api/keys/${id}/revoke`, { method: "POST", headers: csrfHeaders() });
       if (!response.ok) setError("Could not revoke the key");
       else router.refresh();
     } finally {

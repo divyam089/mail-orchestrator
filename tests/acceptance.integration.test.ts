@@ -116,8 +116,13 @@ it("keeps viewer, operator, and admin on separate scopes", () => {
   expect(viewer).not.toContain("campaigns.write");
   expect(viewer).not.toContain("keys.manage");
   expect(operator).toContain("campaigns.write");
+  expect(operator).toContain("review.write");
   expect(operator).not.toContain("keys.manage");
+  expect(operator).not.toContain("inboxes.write");
+  expect(operator).not.toContain("approval.write");
   expect(admin).toContain("keys.manage");
+  expect(admin).toContain("inboxes.write");
+  expect(admin).toContain("approval.write");
 });
 
 it("stops the rest of a sequence when a reply arrives", async () => {

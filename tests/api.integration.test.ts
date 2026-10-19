@@ -267,11 +267,14 @@ it("imports, suppresses, pauses, and maps assistant events", async () => {
     const added = await call(client, secret, "POST", "/suppression", { kind: "domain", value: "blocked.test", reason: "owner" });
     expect(added.status).toBe(201);
     const inbox = await client.query<{ id: string }>(`SELECT id FROM inboxes WHERE email = 'piyush@usefigcel.com'`);
-    const paused = await call(client, secret, "POST", `/inboxes/${inbox.rows[0].id}/pause`, { detail: "API pause", rule: "manual" });
+    const denied = await call(client, secret, "POST", `/inboxes/${inbox.rows[0].id}/pause`, { detail: "API pause", rule: "manual" });
+    expect(denied.status).toBe(403);
+    const admin = await mint(client, "admin", "ops-admin");
+    const paused = await call(client, admin, "POST", `/inboxes/${inbox.rows[0].id}/pause`, { detail: "API pause", rule: "manual" });
     expect(paused.status).toBe(200);
     const status = await client.query<{ status: string }>(`SELECT status FROM inboxes WHERE id = $1`, [inbox.rows[0].id]);
     expect(status.rows[0].status).toBe("paused");
-    const resumed = await call(client, secret, "POST", `/inboxes/${inbox.rows[0].id}/resume`, {});
+    const resumed = await call(client, admin, "POST", `/inboxes/${inbox.rows[0].id}/resume`, {});
     expect(resumed.status).toBe(200);
     const reply = await client.query<{ id: string }>(
       `INSERT INTO events (kind, et_date, detail) VALUES ('reply', '2026-10-19', '{}') RETURNING id`,

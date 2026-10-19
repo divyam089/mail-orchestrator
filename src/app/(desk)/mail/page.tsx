@@ -1,4 +1,6 @@
 import { MailWorkspace } from "@/components/mail-workspace";
+import { requirePage } from "@/lib/auth/guard";
+import { roleAtLeast } from "@/lib/auth/roles";
 import { getPool } from "@/lib/db/pool";
 import type { MailView } from "@/lib/mail/mailbox";
 import { listTemplates, listThreads, loadThread } from "@/lib/mail/mailbox";
@@ -17,6 +19,7 @@ export default async function MailPage({
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
+  const user = await requirePage("viewer");
   const params = await searchParams;
   const viewParam = one(params.view);
   const view = VIEWS.has(viewParam as MailView) ? (viewParam as MailView) : "inbox";
@@ -56,6 +59,7 @@ export default async function MailPage({
         templates={templates}
         filters={filters}
         approvalMode={settings.approvalMode}
+        canWrite={roleAtLeast(user.role, "operator")}
       />
     );
   } catch (error) {

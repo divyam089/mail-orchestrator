@@ -9,6 +9,7 @@ export default defineConfig({
     environment: "node",
     setupFiles: ["./tests/setup.ts"],
     fileParallelism: false,
+    sequence: { concurrent: false },
     include: ["tests/**/*.test.ts", "tests/**/*.test.tsx"],
   },
   resolve: {

@@ -1,3 +1,4 @@
+import { bootstrapAdmin } from "@/lib/auth/users";
 import { INBOXES, domainOf } from "@/lib/inboxes";
 import { getPool, type Db } from "@/lib/db/pool";
 
@@ -19,4 +20,5 @@ export async function seed(db: Db = getPool()): Promise<void> {
     );
   }
   await db.query("INSERT INTO app_settings (id) VALUES (1) ON CONFLICT (id) DO NOTHING");
+  await bootstrapAdmin(db);
 }
