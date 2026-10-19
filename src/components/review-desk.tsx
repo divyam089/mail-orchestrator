@@ -78,9 +78,9 @@ export function ReviewDeskView({ initial }: { initial: ReviewDesk }) {
       {error ? <p className="mt-4 text-sm text-rust">{error}</p> : null}
 
       {initial.drafts.length === 0 ? (
-        <p className="mt-10 border border-line bg-card px-4 py-6 text-sm text-muted">
-          The queue is empty. With approval off, the planner writes a draft here instead of sending. With approval
-          on, there is nothing to review.
+        <p className="mt-10 rounded-xl bg-card px-5 py-8 text-[15px] leading-relaxed text-muted">
+          Nothing is waiting. The queue is empty. With approval off, the planner writes a draft here instead of
+          sending. With approval on, there is nothing to review.
         </p>
       ) : (
         <>
@@ -88,7 +88,7 @@ export function ReviewDeskView({ initial }: { initial: ReviewDesk }) {
             <button
               type="button"
               disabled={busy || selected.length === 0}
-              className="border border-ink bg-ink px-3 py-2 text-sm text-paper disabled:opacity-40"
+              className="rounded-md bg-accent px-3 py-2 text-[15px] text-paper disabled:opacity-40"
               onClick={() => post("/api/review/bulk", { ids: selected, action: "approve" })}
             >
               Approve selected
@@ -104,7 +104,7 @@ export function ReviewDeskView({ initial }: { initial: ReviewDesk }) {
           </div>
           <ul className="mt-4 space-y-4">
             {initial.drafts.map((draft) => (
-              <li key={draft.id} className="border border-line bg-card p-4">
+              <li key={draft.id} className="rounded-xl bg-card p-5">
                 <label className="flex items-start gap-3">
                   <input
                     type="checkbox"

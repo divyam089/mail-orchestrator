@@ -1,6 +1,6 @@
 # Figcel Outreach
 
-Cold-email ledger for 15 Google Workspace mailboxes. Step 7 is the REST API: the same actions as the UI, under `/api/v1`, with hashed keys and the same send gates. The kill switch ships off, so this process does not send.
+Cold-email ledger for 15 Google Workspace mailboxes. Step 7 is the REST API: the same actions as the UI, under `/api/v1`, with hashed keys and the same send gates. Step 8 is the acceptance run in `ACCEPTANCE.md`. The desk is a soft off-white by default, with a Dark control in the banner. The kill switch ships off, so this process does not send.
 
 ```
 UI ──┐

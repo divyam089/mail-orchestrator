@@ -61,7 +61,7 @@ export function KeyDesk({ keys }: { keys: unknown[] }) {
   return (
     <div className="mt-6">
       <form
-        className="flex flex-col gap-3 border border-line bg-card p-4 sm:flex-row sm:items-end"
+        className="flex flex-col gap-3 rounded-xl bg-card p-5 sm:flex-row sm:items-end"
         onSubmit={(event) => {
           event.preventDefault();
           void createKey();
@@ -97,7 +97,7 @@ export function KeyDesk({ keys }: { keys: unknown[] }) {
         </p>
       ) : null}
       {error ? <p className="mt-4 text-sm text-rust">{error}</p> : null}
-      <ul className="mt-6 divide-y divide-line border border-line bg-card">
+      <ul className="mt-6 divide-y divide-line overflow-hidden rounded-xl bg-card">
         {rows.length === 0 ? <li className="px-3 py-4 text-sm text-muted">no data yet</li> : null}
         {rows.map((key) => (
           <li key={key.id} className="flex flex-col gap-2 px-3 py-3 sm:flex-row sm:items-center sm:justify-between">

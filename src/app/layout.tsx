@@ -4,6 +4,8 @@ import { GateBanner } from "@/components/status-board";
 import { loadStatus } from "@/lib/status";
 import "./globals.css";
 
+const themeBoot = `(function(){try{var q=new URLSearchParams(location.search).get("theme");var t=q==="dark"||q==="light"?q:localStorage.getItem("theme");if(t==="dark")document.documentElement.setAttribute("data-theme","dark");else document.documentElement.removeAttribute("data-theme");}catch(e){}})();`;
+
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
@@ -28,8 +30,9 @@ export default async function RootLayout({
 }>) {
   const status = await loadStatus();
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+        <script dangerouslySetInnerHTML={{ __html: themeBoot }} />
         <GateBanner status={status} />
         {children}
       </body>

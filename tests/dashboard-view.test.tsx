@@ -82,6 +82,9 @@ function render(data: DashboardSnapshot) {
 
 it("shows empty ledger states without inventing a complaint or an open", () => {
   const html = render(snapshot());
+  expect(html).toContain("Sent today");
+  expect(html).toContain("Bounce rate");
+  expect(html).toContain("0 / 405");
   expect(html).toContain("no data yet");
   expect(html).toContain("no source");
   expect(html).toContain("tracking off");

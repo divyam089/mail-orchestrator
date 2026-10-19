@@ -1,11 +1,18 @@
 import Link from "next/link";
+import { ThemeToggle } from "@/components/theme-toggle";
 import type { SystemStatus } from "@/lib/status";
 
-function Chip({ label, value, tone }: { label: string; value: string; tone: "bad" | "ok" | "warn" }) {
+function Chip({ label, value, tone }: { label: string; value: string; tone: "bad" | "ok" | "warn" | "neutral" }) {
   const toneClass =
-    tone === "ok" ? "text-moss border-moss/30" : tone === "warn" ? "text-amber border-amber/30" : "text-rust border-rust/30";
+    tone === "ok"
+      ? "text-moss"
+      : tone === "warn"
+        ? "text-amber"
+        : tone === "neutral"
+          ? "text-ink"
+          : "text-rust";
   return (
-    <div className={`min-w-0 border-l-2 px-3 py-1 ${toneClass}`}>
+    <div className={`min-w-0 px-1 py-0.5 ${toneClass}`}>
       <div className="text-[11px] uppercase tracking-[0.14em] text-muted">{label}</div>
       <div className="truncate text-sm font-medium">{value}</div>
     </div>
@@ -26,43 +33,46 @@ export function GateBanner({ status }: { status: SystemStatus }) {
   const approval =
     status.approvalMode === "auto" ? "Auto-send ON" : status.approvalMode === "review" ? "Review queue · OFF" : "Unknown";
   return (
-    <div className="border-b border-line bg-card" role="status">
-      <div className="mx-auto flex max-w-[96rem] flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+    <div className="border-b border-line bg-card/80" role="status">
+      <div className="mx-auto flex max-w-[96rem] flex-col gap-4 px-4 py-4 sm:px-6 lg:flex-row lg:items-center lg:justify-between">
         <div>
           <div className="font-display text-lg leading-none">Figcel Outreach</div>
-          <div className="mt-1 flex gap-3 text-xs">
-            <Link className="text-muted underline decoration-line underline-offset-2" href="/">
+          <nav className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm">
+            <Link className="text-muted underline decoration-line/80 underline-offset-4" href="/">
               Status
             </Link>
-            <Link className="text-muted underline decoration-line underline-offset-2" href="/import">
+            <Link className="text-muted underline decoration-line/80 underline-offset-4" href="/import">
               Import
             </Link>
-            <Link className="text-muted underline decoration-line underline-offset-2" href="/review">
+            <Link className="text-muted underline decoration-line/80 underline-offset-4" href="/review">
               Review
             </Link>
-            <Link className="text-muted underline decoration-line underline-offset-2" href="/mail">
+            <Link className="text-muted underline decoration-line/80 underline-offset-4" href="/mail">
               Mail
             </Link>
-            <Link className="text-muted underline decoration-line underline-offset-2" href="/dashboard">
+            <Link className="text-muted underline decoration-line/80 underline-offset-4" href="/dashboard">
               Dashboard
             </Link>
-            <Link className="text-muted underline decoration-line underline-offset-2" href="/api/docs">
+            <Link className="text-muted underline decoration-line/80 underline-offset-4" href="/api/docs">
               API
             </Link>
-            <Link className="text-muted underline decoration-line underline-offset-2" href="/keys">
+            <Link className="text-muted underline decoration-line/80 underline-offset-4" href="/keys">
               Keys
             </Link>
-          </div>
+          </nav>
         </div>
-        <div className="grid grid-cols-2 gap-x-4 gap-y-2 sm:flex sm:gap-6">
-          <Chip label="Approval" value={approval} tone={status.approvalMode === "auto" ? "warn" : "bad"} />
-          <Chip
-            label="Kill switch"
-            value={status.sendingEnabled ? "SENDING_ENABLED true" : "SENDING_ENABLED false"}
-            tone={status.sendingEnabled ? "warn" : "bad"}
-          />
-          <Chip label="Postgres" value={status.postgres} tone={status.postgres === "up" ? "ok" : "bad"} />
-          <Chip label="Redis" value={status.redis} tone={status.redis === "up" ? "ok" : "bad"} />
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+          <div className="grid grid-cols-2 gap-x-4 gap-y-2 sm:flex sm:gap-5">
+            <Chip label="Approval" value={approval} tone={status.approvalMode === "auto" ? "warn" : "neutral"} />
+            <Chip
+              label="Kill switch"
+              value={status.sendingEnabled ? "SENDING_ENABLED true" : "SENDING_ENABLED false"}
+              tone={status.sendingEnabled ? "warn" : "neutral"}
+            />
+            <Chip label="Postgres" value={status.postgres} tone={status.postgres === "up" ? "ok" : "bad"} />
+            <Chip label="Redis" value={status.redis} tone={status.redis === "up" ? "ok" : "bad"} />
+          </div>
+          <ThemeToggle />
         </div>
       </div>
     </div>
@@ -73,7 +83,7 @@ export function StatusBoard({ status }: { status: SystemStatus }) {
   const groups = groupInboxes(status);
   return (
     <main className="mx-auto max-w-6xl px-4 py-8 sm:px-6 sm:py-10">
-      <p className="text-[11px] uppercase tracking-[0.18em] text-muted">Step 7 of 8 · API</p>
+      <p className="text-[11px] uppercase tracking-[0.18em] text-muted">Status and settings</p>
       <h1 className="font-display mt-2 max-w-3xl text-4xl leading-tight sm:text-5xl">
         Sending is off. Approval stays in the review queue.
       </h1>
@@ -113,7 +123,7 @@ export function StatusBoard({ status }: { status: SystemStatus }) {
       ) : null}
 
       <section className="mt-8 grid gap-4 lg:grid-cols-3">
-        <article className="border border-line bg-card p-4">
+        <article className="rounded-xl bg-card p-5">
           <h2 className="text-sm font-medium">What blocks a send</h2>
           <ul className="mt-3 space-y-2 text-sm">
             {status.blockers.map((blocker) => (
@@ -143,7 +153,7 @@ export function StatusBoard({ status }: { status: SystemStatus }) {
           </dl>
         </article>
 
-        <article className="border border-line bg-card p-4">
+        <article className="rounded-xl bg-card p-5">
           <h2 className="text-sm font-medium">Hard caps</h2>
           <p className="mt-3 font-mono text-2xl">
             {status.maxPerInbox ?? "—"} <span className="text-base text-muted">/ inbox</span>
@@ -161,7 +171,7 @@ export function StatusBoard({ status }: { status: SystemStatus }) {
           <p className="mt-3 font-mono text-xs text-muted">ramp {status.ramp}</p>
         </article>
 
-        <article className="border border-line bg-card p-4">
+        <article className="rounded-xl bg-card p-5">
           <h2 className="text-sm font-medium">Connections</h2>
           <dl className="mt-3 space-y-2 text-sm">
             <div className="flex justify-between gap-4">
@@ -197,7 +207,7 @@ export function StatusBoard({ status }: { status: SystemStatus }) {
       </section>
 
       <section className="mt-8 grid gap-4 lg:grid-cols-2">
-        <article className="border border-line bg-card p-4">
+        <article className="rounded-xl bg-card p-5">
           <h2 className="text-sm font-medium">Tracking and placement</h2>
           <p className="mt-3 text-sm leading-relaxed text-muted">
             Open and click tracking exists per campaign and is off by default. Tracking pixels and redirect links
@@ -209,7 +219,7 @@ export function StatusBoard({ status }: { status: SystemStatus }) {
             real recipients.
           </p>
         </article>
-        <article className="border border-line bg-card p-4">
+        <article className="rounded-xl bg-card p-5">
           <h2 className="text-sm font-medium">How a send stays unique</h2>
           <ol className="mt-3 list-decimal space-y-2 pl-4 text-sm leading-relaxed text-muted">
             <li>Redis holds the queue. Postgres holds the lock. A restart puts an in-flight job back on the queue.</li>
@@ -242,7 +252,7 @@ export function StatusBoard({ status }: { status: SystemStatus }) {
         </div>
         <div className="mt-3 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {groups.map(([domain, inboxes]) => (
-            <article key={domain} className="border border-line bg-card">
+            <article key={domain} className="overflow-hidden rounded-xl bg-card">
               <header className="border-b border-line px-3 py-2 font-mono text-xs">{domain}</header>
               <ul>
                 {inboxes.map((inbox) => (

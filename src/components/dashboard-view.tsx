@@ -15,17 +15,17 @@ export function DashboardView({
     <main className="mx-auto max-w-[96rem] px-4 py-8 sm:px-6 sm:py-10">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div>
-          <p className="text-[11px] uppercase tracking-[0.18em] text-muted">Step 6 of 8 · Live dashboard</p>
+          <p className="text-[11px] uppercase tracking-[0.18em] text-muted">Dashboard</p>
           <h1 className="font-display mt-2 text-4xl leading-tight sm:text-5xl">Today’s ledger</h1>
-          <p className="mt-3 max-w-2xl text-sm leading-relaxed text-muted">
+          <p className="mt-3 max-w-2xl text-[15px] leading-relaxed text-muted">
             Counts come from Postgres. A missing source stays blank. This page does not invent a zero.
           </p>
         </div>
         <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-end">
           <p
             data-live={live}
-            className={`border px-3 py-2 text-xs uppercase tracking-[0.14em] ${
-              live === "live" ? "border-moss/40 text-moss" : live === "reconnecting" ? "border-rust/40 text-rust" : "border-amber/40 text-amber"
+            className={`rounded-full px-3 py-1.5 text-xs uppercase tracking-[0.14em] ${
+              live === "live" ? "bg-moss/10 text-moss" : live === "reconnecting" ? "bg-rust/10 text-rust" : "bg-amber/15 text-amber"
             }`}
           >
             {live === "live" ? "Live" : live === "reconnecting" ? "Reconnecting" : "Connecting"}
@@ -34,7 +34,7 @@ export function DashboardView({
             <label className="text-xs text-muted">
               From
               <input
-                className="mt-1 block border border-line bg-card px-2 py-1.5 text-sm text-ink"
+                className="mt-1 block rounded-md border border-line bg-paper px-2 py-1.5 text-[15px] text-ink"
                 type="date"
                 name="from"
                 defaultValue={data.from}
@@ -43,13 +43,13 @@ export function DashboardView({
             <label className="text-xs text-muted">
               To
               <input
-                className="mt-1 block border border-line bg-card px-2 py-1.5 text-sm text-ink"
+                className="mt-1 block rounded-md border border-line bg-paper px-2 py-1.5 text-[15px] text-ink"
                 type="date"
                 name="to"
                 defaultValue={data.to}
               />
             </label>
-            <button className="border border-ink bg-ink px-3 py-1.5 text-sm text-paper" type="submit">
+            <button className="rounded-md bg-accent px-3 py-1.5 text-[15px] text-paper" type="submit">
               Apply
             </button>
           </form>
@@ -64,25 +64,78 @@ export function DashboardView({
         . Caps below are today, {data.today}, even when the range is wider.
       </p>
 
-      <section className="mt-6">
+      <section className="mt-8" aria-label="Headline numbers">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-6">
+          <Headline
+            label="Sent today"
+            value={`${data.caps.fleetUsed} / ${data.caps.fleetCap}`}
+            hint="Toward today’s fleet cap"
+            tip="Messages that count toward the cap today, across all 15 inboxes. The fleet cap cannot exceed 405, and one inbox cannot exceed 27."
+          />
+          <Headline
+            label="Replies"
+            value={String(data.totals.replies)}
+            hint="In the selected dates"
+            tip="Replies recorded between the From and To dates."
+          />
+          <Headline
+            label="Positive replies"
+            value={String(data.totals.positiveReplies)}
+            hint="Classified interested"
+            tip="Replies labeled interested in this date range."
+          />
+          <Headline
+            label="Bounce rate"
+            value={bounceRate(data)}
+            hint="Hard and soft, over sends"
+            tip="Hard bounces plus soft bounces, divided by sends in this date range. With no sends, the rate is no data yet."
+          />
+          <Headline
+            label="Unsubscribes"
+            value={String(data.totals.unsubscribes)}
+            hint="In the selected dates"
+            tip="Unsubscribe events in this date range."
+          />
+          <Headline
+            label="Queue"
+            value={String(data.queue.reviewDrafts)}
+            hint={queueHint(data)}
+            tip="Drafts waiting in Review. The Redis waiting line is shown underneath when Redis is up, and unavailable when it is not."
+          />
+        </div>
+      </section>
+
+      <section className="mt-10">
         <SectionHead title="Range totals" view="summary" data={data} />
-        <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
-          <Metric label="Sent" value={String(data.totals.sent)} />
-          <Metric label="Delivered" value={String(data.totals.delivered)} hint="Sent minus bounces" />
-          <Metric label="Hard bounces" value={String(data.totals.hardBounces)} />
-          <Metric label="Soft bounces" value={String(data.totals.softBounces)} />
-          <Metric label="Replies" value={String(data.totals.replies)} />
-          <Metric label="Positive replies" value={String(data.totals.positiveReplies)} hint="Classified interested" />
-          <Metric label="Unsubscribes" value={String(data.totals.unsubscribes)} />
-          <Metric label="Complaints" value={data.totals.complaints == null ? "no source" : String(data.totals.complaints)} />
-          <Metric label="Opens" value={data.tracking.opens == null ? "tracking off" : String(data.tracking.opens)} />
-          <Metric label="Clicks" value={data.tracking.clicks == null ? "tracking off" : String(data.tracking.clicks)} />
+        <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+          <Metric label="Sent" value={String(data.totals.sent)} tip="Sends in the selected dates." />
+          <Metric label="Delivered" value={String(data.totals.delivered)} hint="Sent minus bounces" tip="Sends minus hard and soft bounces. This is not a mailbox delivery receipt." />
+          <Metric label="Hard bounces" value={String(data.totals.hardBounces)} tip="Permanent delivery failures in this range." />
+          <Metric label="Soft bounces" value={String(data.totals.softBounces)} tip="Temporary delivery failures in this range." />
+          <Metric label="Replies" value={String(data.totals.replies)} tip="Replies recorded in this range." />
+          <Metric label="Positive replies" value={String(data.totals.positiveReplies)} hint="Classified interested" tip="Replies labeled interested." />
+          <Metric label="Unsubscribes" value={String(data.totals.unsubscribes)} tip="Unsubscribe events in this range." />
+          <Metric
+            label="Complaints"
+            value={data.totals.complaints == null ? "no source" : String(data.totals.complaints)}
+            tip="Spam complaints. no source means this ledger has nowhere to read them from."
+          />
+          <Metric
+            label="Opens"
+            value={data.tracking.opens == null ? "tracking off" : String(data.tracking.opens)}
+            tip="Shown only when a campaign has open tracking on. Apple Mail Privacy Protection inflates opens."
+          />
+          <Metric
+            label="Clicks"
+            value={data.tracking.clicks == null ? "tracking off" : String(data.tracking.clicks)}
+            tip="Shown only when a campaign has click tracking on."
+          />
         </div>
         <p className="mt-3 text-xs leading-relaxed text-muted">{data.tracking.note}</p>
       </section>
 
-      <section className="mt-8 grid gap-4 lg:grid-cols-2">
-        <article className="border border-line bg-card p-4">
+      <section className="mt-10 grid gap-4 lg:grid-cols-2">
+        <article className="rounded-xl bg-card p-5">
           <h2 className="text-sm font-medium">Queue depth</h2>
           <dl className="mt-3 space-y-2 text-sm">
             <Row label="Ready" value={data.queue.ready == null ? "unavailable" : String(data.queue.ready)} />
@@ -91,12 +144,12 @@ export function DashboardView({
           </dl>
           <p className="mt-3 text-xs text-muted">Ready and processing are Redis list lengths. Review drafts are Postgres rows.</p>
         </article>
-        <article className="border border-line bg-card p-4">
+        <article className="rounded-xl bg-card p-5">
           <div className="flex items-baseline justify-between gap-3">
             <h2 className="text-sm font-medium">Caps today</h2>
             <CsvLink view="caps" data={data} />
           </div>
-          <p className="mt-3 font-mono text-2xl">
+          <p className="num mt-3 font-mono text-2xl">
             {data.caps.fleetUsed}
             <span className="text-base text-muted"> / {data.caps.fleetCap}</span>
             <span className="ml-2 text-sm text-muted">fleet</span>
@@ -109,7 +162,7 @@ export function DashboardView({
 
       <TableSection title="Per inbox" view="by-inbox" data={data}>
         <table className="w-full min-w-[48rem] text-left text-sm">
-          <thead className="text-xs uppercase tracking-[0.12em] text-muted">
+          <thead>
             <tr>
               <Th>Inbox</Th>
               <Th>Sent</Th>
@@ -140,7 +193,7 @@ export function DashboardView({
 
       <TableSection title="Cap used vs today’s ramp" view="caps" data={data}>
         <table className="w-full min-w-[36rem] text-left text-sm">
-          <thead className="text-xs uppercase tracking-[0.12em] text-muted">
+          <thead>
             <tr>
               <Th>Inbox</Th>
               <Th>Used</Th>
@@ -168,7 +221,7 @@ export function DashboardView({
           <Empty />
         ) : (
           <table className="w-full min-w-[56rem] text-left text-sm">
-            <thead className="text-xs uppercase tracking-[0.12em] text-muted">
+            <thead>
               <tr>
                 <Th>Campaign</Th>
                 <Th>Sent</Th>
@@ -209,7 +262,7 @@ export function DashboardView({
           <Empty />
         ) : (
           <table className="w-full min-w-[36rem] text-left text-sm">
-            <thead className="text-xs uppercase tracking-[0.12em] text-muted">
+            <thead>
               <tr>
                 <Th>Day</Th>
                 <Th>Sent</Th>
@@ -240,7 +293,7 @@ export function DashboardView({
           <Empty />
         ) : (
           <table className="w-full min-w-[48rem] text-left text-sm">
-            <thead className="text-xs uppercase tracking-[0.12em] text-muted">
+            <thead>
               <tr>
                 <Th>Campaign</Th>
                 <Th>Step</Th>
@@ -275,9 +328,9 @@ export function DashboardView({
       <section className="mt-8">
         <SectionHead title="Inbox health" view="health" data={data} />
         <p className="mt-2 text-xs text-muted">Unsubscribe sync: {data.unsubSync}</p>
-        <div className="mt-3 overflow-x-auto border border-line bg-card">
+        <div className="mt-4 overflow-x-auto rounded-xl bg-card">
           <table className="w-full min-w-[64rem] text-left text-sm">
-            <thead className="text-xs uppercase tracking-[0.12em] text-muted">
+            <thead>
               <tr>
                 <Th>Inbox</Th>
                 <Th>Status</Th>
@@ -354,12 +407,33 @@ export function DashboardView({
   );
 }
 
-function Metric({ label, value, hint }: { label: string; value: string; hint?: string }) {
+function bounceRate(data: DashboardSnapshot): string {
+  if (data.totals.sent === 0) return "no data yet";
+  const bounces = data.totals.hardBounces + data.totals.softBounces;
+  return `${((bounces / data.totals.sent) * 100).toFixed(1)}%`;
+}
+
+function queueHint(data: DashboardSnapshot): string {
+  if (data.queue.ready == null) return "Redis queue unavailable";
+  return `${data.queue.ready} ready in Redis`;
+}
+
+function Headline({ label, value, hint, tip }: { label: string; value: string; hint: string; tip: string }) {
   return (
-    <article className="border border-line bg-card px-3 py-3">
-      <div className="text-[11px] uppercase tracking-[0.14em] text-muted">{label}</div>
-      <div className="mt-1 font-mono text-xl">{value}</div>
-      {hint ? <div className="mt-1 text-xs text-muted">{hint}</div> : null}
+    <article className="rounded-xl bg-card px-4 py-4" title={tip}>
+      <div className="text-[13px] text-muted">{label}</div>
+      <div className="num mt-2 text-[1.65rem] leading-none tracking-tight">{value}</div>
+      <div className="mt-2 text-[13px] leading-snug text-muted">{hint}</div>
+    </article>
+  );
+}
+
+function Metric({ label, value, hint, tip }: { label: string; value: string; hint?: string; tip: string }) {
+  return (
+    <article className="rounded-xl bg-card px-4 py-4" title={tip}>
+      <div className="text-[13px] text-muted">{label}</div>
+      <div className="num mt-2 text-2xl leading-none">{value}</div>
+      {hint ? <div className="mt-2 text-[13px] text-muted">{hint}</div> : null}
     </article>
   );
 }
@@ -368,7 +442,7 @@ function Row({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex justify-between gap-4">
       <dt className="text-muted">{label}</dt>
-      <dd className="font-mono">{value}</dd>
+      <dd className="num font-mono">{value}</dd>
     </div>
   );
 }
@@ -405,23 +479,23 @@ function TableSection({
   children: ReactNode;
 }) {
   return (
-    <section className="mt-8">
+    <section className="mt-10">
       <SectionHead title={title} view={view} data={data} />
-      <div className="mt-3 overflow-x-auto border border-line bg-card">{children}</div>
+      <div className="mt-4 overflow-x-auto rounded-xl bg-card">{children}</div>
     </section>
   );
 }
 
 function Th({ children }: { children: ReactNode }) {
-  return <th className="px-3 py-2 font-medium">{children}</th>;
+  return <th className="px-3 py-3 text-left text-[13px] font-medium text-muted">{children}</th>;
 }
 
 function Td({ children, className = "" }: { children: ReactNode; className?: string }) {
-  return <td className={`px-3 py-2 ${className}`}>{children}</td>;
+  return <td className={`num px-3 py-3 text-[15px] ${className}`}>{children}</td>;
 }
 
 function Empty() {
-  return <p className="px-3 py-4 text-sm text-muted">no data yet</p>;
+  return <p className="px-4 py-8 text-[15px] text-muted">Nothing in this range yet. no data yet</p>;
 }
 
 function AlertList({
@@ -434,10 +508,10 @@ function AlertList({
   rows: { key: string; title: string; detail: string; at: string }[];
 }) {
   return (
-    <article className="border border-line bg-card p-4">
+    <article className="rounded-xl bg-card p-5">
       <h3 className="text-sm font-medium">{title}</h3>
       {empty ? (
-        <p className="mt-3 text-sm text-muted">no data yet</p>
+        <p className="mt-3 text-[15px] text-muted">All quiet here. no data yet</p>
       ) : (
         <ul className="mt-3 space-y-2 text-sm">
           {rows.map((row) => (

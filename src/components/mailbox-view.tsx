@@ -127,7 +127,7 @@ export function MailboxView({
         </p>
       </div>
 
-      <form action="/mail" method="get" className="mt-3 flex flex-wrap items-end gap-2 border border-line bg-card p-2">
+      <form action="/mail" method="get" className="mt-4 flex flex-wrap items-end gap-2 rounded-xl bg-card p-3">
         {selectedId ? <input type="hidden" name="thread" value={selectedId} /> : null}
         <input type="hidden" name="view" value={filters.view} />
         <label className="flex min-w-[10rem] flex-1 flex-col text-[11px] uppercase tracking-[0.12em] text-muted">
@@ -173,7 +173,7 @@ export function MailboxView({
             ))}
           </select>
         </label>
-        <button type="submit" className="border border-ink bg-ink px-3 py-1.5 text-sm text-paper">
+        <button type="submit" className="rounded-md bg-accent px-3 py-1.5 text-[15px] text-paper">
           Show
         </button>
         <button type="button" className="border border-line px-3 py-1.5 text-sm" onClick={() => onHelp?.(true)}>
@@ -194,8 +194,8 @@ export function MailboxView({
         ))}
       </div>
 
-      <div className="mt-2 grid min-h-0 flex-1 gap-2 lg:grid-cols-[18rem_minmax(0,1fr)_18rem]">
-        <section data-pane="list" className={`flex min-h-0 flex-col border border-line bg-card ${hidden("list")}`}>
+      <div className="mt-3 grid min-h-0 flex-1 gap-3 lg:grid-cols-[18rem_minmax(0,1fr)_18rem]">
+        <section data-pane="list" className={`flex min-h-0 flex-col rounded-xl bg-card ${hidden("list")}`}>
           <div className="flex flex-wrap gap-1 border-b border-line p-2">
             {VIEWS.map(([value, label]) => (
               <button
@@ -225,8 +225,9 @@ export function MailboxView({
           </div>
           <div className="min-h-0 flex-1 overflow-auto">
             {threads.length === 0 ? (
-              <p className="p-4 text-sm leading-relaxed text-muted">
-                No mail in this view. Sync on the key machine fills these panes. This server does not call Gmail.
+              <p className="p-5 text-[15px] leading-relaxed text-muted">
+                No mail in this view. This desk is empty until a sync on the key machine stores messages. This server
+                does not call Gmail.
               </p>
             ) : (
               <ul>
@@ -261,7 +262,7 @@ export function MailboxView({
           </div>
         </section>
 
-        <section data-pane="message" data-subject={detail?.subject ?? ""} className={`flex min-h-0 flex-col border border-line bg-card ${hidden("message")}`}>
+        <section data-pane="message" data-subject={detail?.subject ?? ""} className={`flex min-h-0 flex-col rounded-xl bg-card ${hidden("message")}`}>
           {detail ? (
             <>
               <header className="border-b border-line px-4 py-3">
@@ -344,7 +345,7 @@ export function MailboxView({
         <aside
           data-pane="context"
           data-contact={detail?.context.contact?.email ?? ""}
-          className={`min-h-0 overflow-auto border border-line bg-card p-3 text-sm ${hidden("context")}`}
+          className={`min-h-0 overflow-auto rounded-xl bg-card p-4 text-[15px] ${hidden("context")}`}
         >
           <ContextPane detail={detail} onSelect={onSelect} onClassify={onClassify} onNote={onNote} onTag={onTag} />
         </aside>
