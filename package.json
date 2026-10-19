@@ -10,9 +10,13 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "migrate": "tsx scripts/db-prepare.ts",
-    "db:up": "docker compose up -d"
+    "db:up": "docker compose up -d",
+    "inbox:check": "tsx scripts/inbox-check.ts",
+    "inbox:sync": "tsx scripts/inbox-sync.ts",
+    "inbox:schedule": "tsx scripts/inbox-schedule.ts"
   },
   "dependencies": {
+    "google-auth-library": "^11.3.1",
     "ioredis": "^6.0.0",
     "next": "15.5.28",
     "pg": "^8.23.1",

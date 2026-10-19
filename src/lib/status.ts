@@ -10,6 +10,16 @@ export type InboxRow = {
   status: string;
   dailyCap: number;
   provider: string;
+  lastSyncAt: string | null;
+  lastError: string | null;
+  historyReady: boolean;
+  historyId: string | null;
+};
+
+export type DisconnectAlert = {
+  email: string;
+  detail: string;
+  createdAt: string;
 };
 
 export type SystemStatus = {
@@ -35,6 +45,7 @@ export type SystemStatus = {
   autoSendPermitted: boolean;
   gmailKeyConfigured: boolean;
   inboxes: InboxRow[];
+  alerts: DisconnectAlert[];
 };
 
 type SettingsRow = {
@@ -57,7 +68,12 @@ type InboxSql = {
   status: string;
   daily_cap: number;
   provider: string;
+  last_sync_at: Date | null;
+  last_error: string | null;
+  history_id: string | null;
 };
+
+type AlertSql = { email: string; detail: string; created_at: Date };
 
 function base(redis: "up" | "down"): SystemStatus {
   const sendingEnabled = readSendingEnabled();
@@ -88,6 +104,7 @@ function base(redis: "up" | "down"): SystemStatus {
     autoSendPermitted: false,
     gmailKeyConfigured: Boolean(process.env.GMAIL_SA_KEY_PATH?.trim()),
     inboxes: [],
+    alerts: [],
   };
 }
 
@@ -96,7 +113,7 @@ export const loadStatus = cache(async (): Promise<SystemStatus> => {
   const status = base(redis);
   try {
     const pool = getPool();
-    const [migration, settingsResult, inboxResult] = await Promise.all([
+    const [migration, settingsResult, inboxResult, alertResult] = await Promise.all([
       pool.query<{ version: string }>("SELECT version FROM schema_migrations ORDER BY version DESC LIMIT 1"),
       pool.query<SettingsRow>(
         `SELECT approval_mode, legal_name, postal_address, verification_provider,
@@ -105,8 +122,16 @@ export const loadStatus = cache(async (): Promise<SystemStatus> => {
          FROM app_settings WHERE id = 1`,
       ),
       pool.query<InboxSql>(
-        `SELECT email, sender_name, domain, status, daily_cap, provider
+        `SELECT email, sender_name, domain, status, daily_cap, provider,
+                last_sync_at, last_error, history_id
          FROM inboxes ORDER BY domain, email`,
+      ),
+      pool.query<AlertSql>(
+        `SELECT i.email, a.detail, a.created_at
+         FROM alerts a
+         JOIN inboxes i ON i.id = a.inbox_id
+         WHERE a.kind = 'inbox_disconnect' AND a.acknowledged_at IS NULL
+         ORDER BY a.created_at DESC`,
       ),
     ]);
     const settings = settingsResult.rows[0];
@@ -151,6 +176,15 @@ export const loadStatus = cache(async (): Promise<SystemStatus> => {
         status: row.status,
         dailyCap: row.daily_cap,
         provider: row.provider,
+        lastSyncAt: row.last_sync_at ? row.last_sync_at.toISOString().replace("T", " ").slice(0, 16) + " UTC" : null,
+        lastError: row.last_error,
+        historyReady: Boolean(row.history_id),
+        historyId: row.history_id,
+      })),
+      alerts: alertResult.rows.map((row) => ({
+        email: row.email,
+        detail: row.detail,
+        createdAt: row.created_at.toISOString().replace("T", " ").slice(0, 16) + " UTC",
       })),
     };
   } catch (error) {

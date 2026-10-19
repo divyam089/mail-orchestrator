@@ -1,3 +1,5 @@
+import type { GmailReadClient } from "@/lib/mail/types";
+
 export type MailProvider = "gmail_sa" | "gmail_oauth" | "imap_smtp" | "mock";
 
 export class MailSendRefused extends Error {
@@ -18,7 +20,7 @@ export interface MailAdapter {
   send(message: OutboundMessage): Promise<{ id: string; threadId: string }>;
 }
 
-/** Used by every test and by this step's runtime. It cannot deliver mail. */
+/** Used by every test. It cannot deliver mail. */
 export class MockMailAdapter implements MailAdapter {
   readonly provider = "mock" as const;
 
@@ -30,14 +32,17 @@ export class MockMailAdapter implements MailAdapter {
 }
 
 /**
- * Gmail API via one service account and domain-wide delegation.
- * Step 2 implements this. The key path will be env GMAIL_SA_KEY_PATH only.
- * Scopes: gmail.send, gmail.readonly, gmail.modify. Impersonate each inbox.
- * Project figcel-sender, service account coldsend, five Workspace tenants.
- * Calling this in step 1 always refuses, even if a key path is set.
+ * Service-account mailbox. Read methods live on GmailReadClient.
+ * send() throws before any network call. Sync does not use this method.
  */
-export function gmailServiceAccountAdapter(): MailAdapter {
-  throw new MailSendRefused(
-    "Gmail service-account adapter is not enabled in this build. No real email is sent.",
-  );
+export class GmailReadOnlyMailbox implements MailAdapter {
+  readonly provider = "gmail_sa" as const;
+
+  constructor(readonly client: GmailReadClient) {}
+
+  async send(message: OutboundMessage): Promise<{ id: string; threadId: string }> {
+    throw new MailSendRefused(
+      `Gmail adapter refused to send from ${message.from}. This step is read-only and sending is disabled.`,
+    );
+  }
 }

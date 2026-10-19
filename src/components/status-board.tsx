@@ -47,13 +47,15 @@ export function StatusBoard({ status }: { status: SystemStatus }) {
   const groups = groupInboxes(status);
   return (
     <main className="mx-auto max-w-6xl px-4 py-8 sm:px-6 sm:py-10">
-      <p className="text-[11px] uppercase tracking-[0.18em] text-muted">Step 1 of 8 · Data model</p>
+      <p className="text-[11px] uppercase tracking-[0.18em] text-muted">Step 2 of 8 · Read-only sync</p>
       <h1 className="font-display mt-2 max-w-3xl text-4xl leading-tight sm:text-5xl">
-        Sending is off. The ledger is ready.
+        Sending is off. Sync is read-only.
       </h1>
       <p className="mt-4 max-w-2xl text-base leading-relaxed text-muted">
-        Fifteen Workspace inboxes, one contact per normalized address, and one sequence send per contact, campaign,
-        and step. This screen is the boot check. Inbox sync and the sender are not built yet.
+        This server does not call Gmail. A connect check and a sync run on a machine that has the service-account
+        JSON, with <span className="font-mono text-ink">npm run inbox:check</span> and{" "}
+        <span className="font-mono text-ink">npm run inbox:sync</span>. The repeating job is{" "}
+        <span className="font-mono text-ink">npm run inbox:schedule</span>. This process does not start it.
       </p>
 
       {status.error ? (
@@ -162,10 +164,25 @@ export function StatusBoard({ status }: { status: SystemStatus }) {
         </article>
       </section>
 
+      {status.alerts.length > 0 ? (
+        <section className="mt-8 border border-rust/40 bg-card p-4">
+          <h2 className="text-sm font-medium text-rust">Open disconnect alerts</h2>
+          <ul className="mt-3 space-y-2 text-sm">
+            {status.alerts.map((alert) => (
+              <li key={`${alert.email}-${alert.createdAt}`} className="border-l-2 border-rust pl-3">
+                <span className="font-mono text-xs">{alert.email}</span>
+                <span className="text-muted"> · {alert.createdAt}</span>
+                <div>{alert.detail}</div>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
+
       <section className="mt-8">
-        <div className="flex items-baseline justify-between gap-4">
+        <div className="flex flex-col gap-1 sm:flex-row sm:items-baseline sm:justify-between">
           <h2 className="text-sm font-medium">Inboxes</h2>
-          <p className="text-xs text-muted">Gmail API · service account · not connected in this step</p>
+          <p className="text-xs text-muted">One service account · domain-wide delegation · sync does not modify Gmail</p>
         </div>
         <div className="mt-3 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {groups.map(([domain, inboxes]) => (
@@ -174,13 +191,19 @@ export function StatusBoard({ status }: { status: SystemStatus }) {
               <ul>
                 {inboxes.map((inbox) => (
                   <li key={inbox.email} className="border-b border-line px-3 py-2 last:border-b-0">
-                    <div className="font-mono text-xs">{inbox.email}</div>
-                    <div className="mt-1 flex justify-between text-xs text-muted">
+                    <div className="break-all font-mono text-xs">{inbox.email}</div>
+                    <div className="mt-1 flex justify-between gap-3 text-xs text-muted">
                       <span>{inbox.senderName}</span>
-                      <span>
+                      <span className="shrink-0">
                         cap {inbox.dailyCap} · {inbox.status.replaceAll("_", " ")}
                       </span>
                     </div>
+                    <div className="mt-1 text-xs text-muted">
+                      {inbox.lastSyncAt ? `synced ${inbox.lastSyncAt}` : "not synced"}
+                      {" · "}
+                      {inbox.historyReady ? `cursor ${inbox.historyId}` : "no cursor"}
+                    </div>
+                    {inbox.lastError ? <div className="mt-1 text-xs text-rust">{inbox.lastError}</div> : null}
                   </li>
                 ))}
               </ul>
